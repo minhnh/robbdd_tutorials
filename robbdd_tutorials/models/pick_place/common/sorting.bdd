@@ -1,0 +1,70 @@
+import "pick_place_single.scene"
+
+ns tutorial = "https://secorolab.github.io/robbdd/tutorials/pick-place/"
+ns pp = "https://secorolab.github.io/models/pick-place-single/fsm/"
+
+Task (ns=tutorial) sorting-task
+
+Event (ns=tutorial) sorting-start
+Event (ns=tutorial) sorting-end
+Event (ns=pp) E_PICK_START
+Event (ns=pp) E_PLACE_END
+
+Scenario Template (ns=tutorial) sorting-template {
+    duration: from <sorting-start> until <sorting-end>
+    task: <sorting-task>
+
+    var robot
+    set var target-objects
+    var pick-workspace
+    set var place-workspaces
+
+    for all ( var object in <target-objects> ) {
+        Given:
+            object-at-pick: holds(
+                <object> is located at <pick-workspace>,
+                before <E_PICK_START>
+            )
+
+        When:
+            Behaviour (ns=tutorial) sort-object-behavior {
+                duration: from <E_PICK_START> until <E_PLACE_END>
+                <robot> picks <object> and places at <place-workspaces>
+            }
+
+        Then:
+            object-at-place: holds(
+                <object> is located at <place-workspaces>,
+                after <E_PLACE_END>
+            )
+    }
+
+    Then:
+        objects-sorted: holds(
+            <target-objects> are sorted into <place-workspaces>,
+            after <E_PLACE_END>
+        )
+}
+
+User Story (ns=tutorial) sorting-story {
+    As A "Robot behavior developer"
+    I Want "To sort a set of objects"
+    So That "Each object reaches an allowed destination"
+
+    Scenarios:
+        Scenario sorting-variation {
+            template: <sorting-template>
+            scene: <pick_place_scene>
+
+            variation:
+                set var <sorting-template.target-objects>:
+                    select 1 combinations from <pickplace_objects>
+                var <sorting-template.pick-workspace>: {
+                    <pickplace_workspaces.table-ws>
+                }
+                set var <sorting-template.place-workspaces>: {
+                    { <pickplace_workspaces.bin-ws> }
+                }
+                var <sorting-template.robot>: agn set <pickplace_agents>
+        }
+}

@@ -1,0 +1,13 @@
+repositories:
+  pydeps/rec:
+    type: git
+    url: https://github.com/secorolab/rec.git
+    version: dev
+  pydeps/motion-spec:
+    type: git
+    url: https://github.com/secorolab/motion-spec.git
+    version: dev
+  pydeps/motion-spec-dsl:
+    type: git
+    url: https://github.com/secorolab/motion-spec-dsl.git
+    version: dev

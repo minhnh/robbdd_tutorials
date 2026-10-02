@@ -1,0 +1,68 @@
+import "pick_place_single.scene"
+
+ns tutorial = "https://secorolab.github.io/robbdd/tutorials/pick-place/"
+ns pp = "https://secorolab.github.io/models/pick-place-single/fsm/"
+
+Task (ns=tutorial) pick-place-task
+
+Event (ns=tutorial) scenario-start
+Event (ns=tutorial) scenario-end
+Event (ns=pp) E_PICK_START
+Event (ns=pp) E_PICK_END
+Event (ns=pp) E_PLACE_START
+Event (ns=pp) E_PLACE_END
+
+Scenario Template (ns=tutorial) pick-place-template {
+    duration: from <scenario-start> until <scenario-end>
+    task: <pick-place-task>
+
+    var robot
+    var target-object
+    var pick-workspace
+    var place-workspace
+
+    Given:
+        object-at-pick: holds(
+            <target-object> is located at <pick-workspace>,
+            before <E_PICK_START>
+        )
+
+    When:
+        Behaviour (ns=tutorial) pick-place-behavior {
+            duration: from <E_PICK_START> until <E_PLACE_END>
+            <robot> picks <target-object> and places at <place-workspace>
+        }
+
+    Then:
+        (
+            object-held: holds(
+                pred(
+                    '"{rob}" does not drop "{obj}"',
+                    rob=<robot>, obj=<target-object>
+                ),
+                from <E_PICK_END> until <E_PLACE_START>
+            )
+            and
+            object-at-place: holds(
+                <target-object> is located at <place-workspace>,
+                after <E_PLACE_END>
+            )
+        )
+}
+
+User Story (ns=tutorial) pick-place-story {
+    As A "Robot behavior developer"
+    I Want "To execute a pick-and-place behavior"
+    So That "I can verify its observable outcome"
+
+    Scenarios:
+        Scenario nominal-pick-place {
+            template: <pick-place-template>
+            scene: <pick_place_scene>
+
+            variation:
+            | <pick-place-template.target-object> | <pick-place-template.pick-workspace> | <pick-place-template.place-workspace> | <pick-place-template.robot> |
+            |---|
+            | <pickplace_objects.cube> | <pickplace_workspaces.table-ws> | <pickplace_workspaces.bin-ws> | <pickplace_agents.arm1> |
+        }
+}

@@ -1,0 +1,19 @@
+<mujoco model="table_asset">
+  <worldbody>
+    <!-- Root body origin is the table top surface center. Place this asset at z=surface_z. -->
+    <body name="root">
+      <geom name="top" type="box" pos="0 0 -0.02" size="0.8 0.4 0.02"
+            rgba="0.45 0.28 0.12 1" contype="1" conaffinity="1" condim="3"/>
+      <!-- Table surface of 2cm + 70cm legs for a table height of 72cm -->
+      <geom name="leg0" type="cylinder" pos="0.77 0.37 -0.37" size="0.03 0.35"
+            rgba="0.35 0.35 0.35 1" contype="1" conaffinity="1" condim="3"/>
+      <geom name="leg1" type="cylinder" pos="-0.77 0.37 -0.37" size="0.03 0.35"
+            rgba="0.35 0.35 0.35 1" contype="1" conaffinity="1" condim="3"/>
+      <geom name="leg2" type="cylinder" pos="0.77 -0.37 -0.37" size="0.03 0.35"
+            rgba="0.35 0.35 0.35 1" contype="1" conaffinity="1" condim="3"/>
+      <geom name="leg3" type="cylinder" pos="-0.77 -0.37 -0.37" size="0.03 0.35"
+            rgba="0.35 0.35 0.35 1" contype="1" conaffinity="1" condim="3"/>
+      <site name="table_top" pos="0 0 0" size="0.001 0.001 0.001" rgba="0 0 0 0"/>
+    </body>
+  </worldbody>
+</mujoco>

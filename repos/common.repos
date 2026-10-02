@@ -1,0 +1,29 @@
+repositories:
+  src/bdd_exec_ros2:
+    type: git
+    url: https://github.com/minhnh/bdd_exec_ros2.git
+    version: jazzy
+  src/bdd_ros2_interfaces:
+    type: git
+    url: https://github.com/minhnh/bdd_ros2_interfaces.git
+    version: main
+  pydeps/bdd-dsl:
+    type: git
+    url: https://github.com/minhnh/bdd-dsl.git
+    version: main
+  pydeps/scene-dsl:
+    type: git
+    url: https://github.com/secorolab/scene-dsl.git
+    version: main
+  pydeps/coord-dsl:
+    type: git
+    url: https://github.com/minhnh/coord-dsl.git
+    version: main
+  pydeps/robbdd:
+    type: git
+    url: https://github.com/minhnh/robbdd.git
+    version: main
+  pydeps/rdf-utils:
+    type: git
+    url: https://github.com/minhnh/rdf-utils.git
+    version: main

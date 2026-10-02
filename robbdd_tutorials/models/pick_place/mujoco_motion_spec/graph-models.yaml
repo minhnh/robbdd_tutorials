@@ -1,0 +1,8 @@
+- path: "models/pick_place/common/pick_place.bdd"
+  format: "robbdd"
+  path_type: "ros"
+  package_name: "robbdd_tutorials"
+- path: "models/pick_place/mujoco_motion_spec/pick_place.bddx"
+  format: "robbdd"
+  path_type: "ros"
+  package_name: "robbdd_tutorials"
