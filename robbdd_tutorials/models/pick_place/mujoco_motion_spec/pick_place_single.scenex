@@ -1,64 +1,20 @@
 import "../common/pick_place_single.scene"
-import "kinova_gen3_7dof.ktree"
-import "robotiq_2f85.ktree"
+import "scene_dsl:robots/kinova_gen3_7dof.ktree"
+import "scene_dsl:robots/robotiq_2f85.ktree"
 
 ns pps_mjc = "https://secorolab.github.io/models/scenes/pick-place-single-mjc/"
 
 ktree inst (ns=pps_mjc) kinova of <kinova_tree>
 ktree inst (ns=pps_mjc) gripper of <gripper_tree>
 
-ktree (ns=pps_mjc) ft_tree {
-    root: <wrist_ft_body.wrist_ft_body_origin>
-    body wrist_ft_body {
-        // The coupler between bracelet and gripper: a 65 mm cylinder whose origin is the
-        // bracelet mating face, +z along the tool axis -- which is -z of the bracelet.
-        frame wrist_ft_body_origin { }
-        // The sensing element sits mid-cylinder, as it does on the real tool; ft_mount.xml
-        // puts the site there.
-        frame wrist_ft_site {
-            pose wrist_ft_site_in_wrist_ft_body {
-                wrt: <wrist_ft_body.wrist_ft_body_origin>
-                xyz: (0.0, 0.0, 0.0325) m
-                orientation: euler { angles: (0.0, 0.0, 0.0) unit: rad }
-            }
-        }
-        // The far face, where the gripper bolts on.
-        frame wrist_ft_mount {
-            pose wrist_ft_mount_in_wrist_ft_body {
-                wrt: <wrist_ft_body.wrist_ft_body_origin>
-                xyz: (0.0, 0.0, 0.065) m
-                orientation: euler { angles: (0.0, 0.0, 0.0) unit: rad }
-            }
-        }
-        // The measured tool weighs 1.195 kg -- coupler, sensor and gripper together -- and the
-        // gripper bodies carry 1.061604 of it from their MJCF, so the coupler carries the rest,
-        // as a solid cylinder 75 mm across.
-        inertia {
-            frame: <wrist_ft_site>
-            mass: 0.133396 kg
-            inertia-matrix: (
-                (9.386e-5, 0.0, 0.0),
-                (0.0, 9.386e-5, 0.0),
-                (0.0, 0.0, 9.379e-5)
-            ) kg*m^2
-        }
-    }
-    joints { }
-}
-
 ktree (ns=pps_mjc) kinova_2f85 {
     root: <kinova.base_link.base_link_origin>
     tree <kinova>
-    tree <ft_tree>
     tree <gripper>
 
     joints {
-        fixed ft_on_pinch_site {
+        fixed gripper_on_pinch_site {
             parent: <kinova.bracelet_link.pinch_site>
-            child: <ft_tree.wrist_ft_body.wrist_ft_body_origin>
-        }
-        fixed gripper_on_ft {
-            parent: <ft_tree.wrist_ft_body.wrist_ft_mount>
             child: <gripper.g_base_mount.g_mount_interface>
         }
         serial {
@@ -202,17 +158,6 @@ scene inst (ns=pps_mjc) pick_place_scene_mjc {
         model kinova-mjc as mjcf {
             sys path = 'src/mj_kdl_wrapper/assets/kinova_gen3/gen3.xml'
             map tree <kinova> to "base_link"
-        }
-
-        model ft-mjc as mjcf {
-            sys path = 'ft_mount.xml'
-            map tree <ft_tree> to "wrist_ft_body"
-        }
-
-        force-torque wrist_ft {
-            frame: <ft_tree.wrist_ft_body.wrist_ft_site>
-            observes: force torque
-            update-rate: 1000.0 Hz
         }
 
         camera wrist {
