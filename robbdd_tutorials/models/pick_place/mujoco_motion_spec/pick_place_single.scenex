@@ -4,6 +4,12 @@ import "scene_dsl:robots/robotiq_2f85.ktree"
 
 ns pps_mjc = "https://secorolab.github.io/models/scenes/pick-place-single-mjc/"
 
+// Each object draws independently, above the tallest object's bottom offset.
+// Gravity settles the objects on the table; initial overlaps are not rejected.
+distrib (ns=pps_mjc) object-position {
+    uniform { dimension: 3 lower: (0.30, -0.30, 0.15) upper: (0.65, -0.05, 0.20) }
+}
+
 ktree inst (ns=pps_mjc) kinova of <kinova_tree>
 ktree inst (ns=pps_mjc) gripper of <gripper_tree>
 
@@ -126,13 +132,43 @@ scene inst (ns=pps_mjc) pick_place_scene_mjc {
 
         body cube {
             frame cube_origin {
-                pose cube_in_world {
-                    wrt: <world_tree.world_body.world>
-                    xyz: (0.50, 0.0, 0.76) m
+                pose cube_on_table {
+                    wrt: <world_tree.table.table_top>
+                    xyz: sample <object-position> m
                     orientation: euler { axes: xyz extrinsic angles: (0, 0, 0) unit: deg }
                 }
             }
         }
+        body can {
+            frame can_origin {
+                pose can_on_table {
+                    wrt: <world_tree.table.table_top>
+                    xyz: sample <object-position> m
+                    orientation: euler { axes: xyz extrinsic angles: (0, 0, 0) unit: deg }
+                }
+            }
+        }
+
+        body cereal-box {
+            frame cereal-box_origin {
+                pose cereal-box_on_table {
+                    wrt: <world_tree.table.table_top>
+                    xyz: sample <object-position> m
+                    orientation: euler { axes: xyz extrinsic angles: (0, 0, 0) unit: deg }
+                }
+            }
+        }
+
+        body bottle {
+            frame bottle_origin {
+                pose bottle_on_table {
+                    wrt: <world_tree.table.table_top>
+                    xyz: sample <object-position> m
+                    orientation: euler { axes: xyz extrinsic angles: (0, 0, 0) unit: deg }
+                }
+            }
+        }
+
     }
 
     obj <ws_objects.table> {
@@ -151,6 +187,27 @@ scene inst (ns=pps_mjc) pick_place_scene_mjc {
     obj <pickplace_objects.cube> {
         model cube-mjc as mjcf { sys path = 'src/mj_kdl_wrapper/assets/cube.xml'
             map body <pick_place_graph.cube> to "cube"
+        }
+    }
+
+    obj <pickplace_objects.can> {
+        model can-mjc as mjcf {
+            sys path = 'assets/robosuite/objects/can.xml'
+            map body <pick_place_graph.can> to "can"
+        }
+    }
+
+    obj <pickplace_objects.cereal-box> {
+        model cereal-box-mjc as mjcf {
+            sys path = 'assets/robosuite/objects/cereal.xml'
+            map body <pick_place_graph.cereal-box> to "cereal-box"
+        }
+    }
+
+    obj <pickplace_objects.bottle> {
+        model bottle-mjc as mjcf {
+            sys path = 'assets/robosuite/objects/bottle.xml'
+            map body <pick_place_graph.bottle> to "bottle"
         }
     }
 

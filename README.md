@@ -111,10 +111,10 @@ The motion-spec process owns the simulator and waits for a
 BDD coordinator. The model provides the behavior action server, BDD boundary events, and
 direct scene-pose observations used by the coordinator.
 
-The pipeline currently produces a complete verdict, but the MuJoCo nominal run
-still reports `object-at-place` as false: the released cube remains about 0.47 m
-from the bin observation point. Aligning the placement controller and scene is
-the remaining behavior-model issue.
+Before introducing sampled placements, the MuJoCo nominal run produced a complete
+verdict but reported `object-at-place` as false: the released cube remained about
+0.47 m from the bin observation point. Placement behavior still needs validation
+after the execution blockers above are resolved.
 
 ### 2. `BehaviorTree.CPP` in Isaac Sim
 
