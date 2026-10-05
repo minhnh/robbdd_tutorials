@@ -19,10 +19,33 @@ contains the requirements and walks through the common models.
 
 ## Create the workspace
 
-Install ROS 2 Jazzy, `uv`, Git LFS, `vcstool`, Ant, and the usual colcon and
-rosdep tools.
-Then clone this repository as a ROS package under `src` and run its setup
-script:
+Common dependencies:
+
+- [ROS 2 Jazzy on Ubuntu 24.04](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html)
+- [Git LFS](https://git-lfs.com/) for pulling binary resources
+- [vcs2l](https://github.com/ros-infrastructure/vcs2l#how-to-install-vcs2l)
+  provides the `vcs` command used by the setup script.
+- [`python3-colcon-common-extensions`](https://colcon.readthedocs.io/en/released/user/installation.html#quick-directory-changes)
+  provides `/usr/share/colcon_cd/function/colcon_cd.sh` for the generated environment scripts.
+- (optional) [uv](https://docs.astral.sh/uv/getting-started/installation/) for managing Python
+  virtual environments. Setup uses `uv` when it is already available, otherwise the
+  virtual environment's `python -m pip`.
+
+`motion-spec` dependencies:
+
+- [Ant](https://ant.apache.org/manual/install.html)
+
+After configuring the ROS apt repository above, install these together:
+
+```bash
+sudo apt update
+sudo apt install git git-lfs python3-vcs2l python3-colcon-common-extensions
+sudo apt install ant  # motion-spec setup
+git lfs install
+sudo rosdep init  # once per machine; skip if already initialized
+```
+
+Then clone this repository as a ROS package under `src` and run its setup script:
 
 ```bash
 mkdir -p ~/ros_bdd_ws/src
@@ -46,7 +69,8 @@ source ~/ros_bdd_ws/setup-robbdd-tutorials.zsh  # zsh
 # source ~/ros_bdd_ws/setup-robbdd-tutorials.bash  # Bash
 ```
 
-The sourced environment provides two maintenance commands:
+The sourced environment loads `colcon_cd` and aliases it as `roscd`, so
+`roscd robbdd_tutorials` jumps to this package. It also provides two maintenance commands:
 
 ```bash
 bdd_tutorial pull

@@ -35,7 +35,6 @@ case "$CONTEXT" in mujoco|isaacsim-bt) ;; *) die "unknown context: $CONTEXT" ;; 
 need colcon
 need ant
 need rosdep
-need uv
 need vcs
 
 VENV="$WS/.venv"
@@ -48,6 +47,14 @@ source_file() {
 }
 
 install_python_packages() {
+    local pip_cmd
+    if command -v uv >/dev/null; then
+        pip_cmd=(uv pip install --python "$VENV/bin/python")
+    else
+        "$VENV/bin/python" -m pip --version >/dev/null 2>&1 \
+            || "$VENV/bin/python" -m ensurepip --upgrade
+        pip_cmd=("$VENV/bin/python" -m pip install)
+    fi
     local projects=(
         rdf-utils
         scene-dsl
@@ -62,14 +69,14 @@ install_python_packages() {
     # Install third-party requirements separately: several workspace projects
     # declare Git URLs for siblings, which conflicts with their editable paths
     # when uv resolves everything in one transaction.
-    uv pip install --python "$VENV/bin/python" \
+    "${pip_cmd[@]}" \
         aiohttp behave click GitPython jinja2 numpy platformdirs protobuf \
         pyld pyshacl 'rdflib>=7.6.0' 'scipy>=1.16' textX textx-jinja \
         textx_ls_core trinary
 
     local project
     for project in "${projects[@]}"; do
-        uv pip install --python "$VENV/bin/python" --no-deps -e "$WS/pydeps/$project"
+        "${pip_cmd[@]}" --no-deps -e "$WS/pydeps/$project"
     done
 }
 
@@ -88,6 +95,8 @@ set +u
 source '/opt/ros/$ROS_DISTRO/setup.$ext'
 source '$VENV/bin/activate'
 source '$WS/install/local_setup.$ext'
+source /usr/share/colcon_cd/function/colcon_cd.sh
+alias roscd=colcon_cd
 [ "\$_robbdd_tutorial_had_nounset" -eq 1 ] && set -u || set +u
 export ROBBDD_TUTORIAL_WS='$WS'
 export ROBBDD_TUTORIAL_CONTEXT='$CONTEXT'
@@ -117,7 +126,7 @@ if [ "$MODE" = setup ]; then
         --skip-keys "catkin python3-future cmake_modules rosconsole roscpp rostest coord2b"
 
     if [ ! -e "$VENV/bin/activate" ]; then
-        uv venv --python /usr/bin/python3 --system-site-packages "$VENV"
+        /usr/bin/python3 -m venv --system-site-packages "$VENV"
     elif ! grep -qx 'include-system-site-packages = true' "$VENV/pyvenv.cfg"; then
         die "$VENV was created without --system-site-packages; remove it and rerun setup"
     fi
