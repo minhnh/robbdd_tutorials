@@ -96,6 +96,9 @@ source '/opt/ros/$ROS_DISTRO/setup.$ext'
 source '$VENV/bin/activate'
 source '$WS/install/local_setup.$ext'
 source /usr/share/colcon_cd/function/colcon_cd.sh
+cd '$WS'
+colcon_cd --set
+cd -
 alias roscd=colcon_cd
 [ "\$_robbdd_tutorial_had_nounset" -eq 1 ] && set -u || set +u
 export ROBBDD_TUTORIAL_WS='$WS'
