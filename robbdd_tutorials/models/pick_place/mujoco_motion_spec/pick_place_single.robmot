@@ -14,38 +14,38 @@ context (ns=app) shared {
     world {
         pose pose-ee-base {
             of:         <gripper.g_base.g_pinch>,
-            wrt:        <kinova.base_link>,
-            as-seen-by: <kinova.base_link>
+            wrt:        <kinova.base_link.base_link_origin>,
+            as-seen-by: <kinova.base_link.base_link_origin>
         },
         velocity-twist twist-ee-base {
             of:         <gripper.g_base.g_pinch>,
-            wrt:        <kinova.base_link>,
-            as-seen-by: <kinova.base_link>
+            wrt:        <kinova.base_link.base_link_origin>,
+            as-seen-by: <kinova.base_link.base_link_origin>
         },
         pose pose-cube-base {
-            of:         <pick_place_graph.cube>,
-            wrt:        <kinova.base_link>,
-            as-seen-by: <kinova.base_link>
+            of:         <pick_place_graph.cube.cube_origin>,
+            wrt:        <kinova.base_link.base_link_origin>,
+            as-seen-by: <kinova.base_link.base_link_origin>
         },
         pose pose-forearm-base {
-            of:         <kinova.forearm_link>,
-            wrt:        <kinova.base_link>,
-            as-seen-by: <kinova.base_link>
+            of:         <kinova.forearm_link.forearm_link_origin>,
+            wrt:        <kinova.base_link.base_link_origin>,
+            as-seen-by: <kinova.base_link.base_link_origin>
         },
         pose pose-table-base {
             of:         <table.table_top>,
-            wrt:        <kinova.base_link>,
-            as-seen-by: <kinova.base_link>
+            wrt:        <kinova.base_link.base_link_origin>,
+            as-seen-by: <kinova.base_link.base_link_origin>
         },
         pose pose-table-observation-base {
             of:         <table.table_observation_point>,
-            wrt:        <kinova.base_link>,
-            as-seen-by: <kinova.base_link>
+            wrt:        <kinova.base_link.base_link_origin>,
+            as-seen-by: <kinova.base_link.base_link_origin>
         },
         pose pose-bin-base {
             of:         <container.bin_observation_point>,
-            wrt:        <kinova.base_link>,
-            as-seen-by: <kinova.base_link>
+            wrt:        <kinova.base_link.base_link_origin>,
+            as-seen-by: <kinova.base_link.base_link_origin>
         },
         joint-position gripper-pos {
             joint: <gripper.g_left_driver_joint>
@@ -71,8 +71,8 @@ context (ns=app) shared {
         pose home-pose = [config.poses.home] for <shared.world.pose-ee-base>,
         // The forearm's own up axis: its z runs along the elbow hinge, so y is the one that
         // stands up when the arm is upright.
-        direction forearm-up { as-seen-by: <kinova.forearm_link> } = (0, 1, 0),
-        direction base-up { as-seen-by: <kinova.base_link> } = (0, 0, 1),
+        direction forearm-up { as-seen-by: <kinova.forearm_link.forearm_link_origin> } = (0, 1, 0),
+        direction base-up { as-seen-by: <kinova.base_link.base_link_origin> } = (0, 0, 1),
         angle align-band = 0.05 rad,
         angle elbow-angle-target = pi rad,
         torque elbow-torque-limit = 10.0 Nm,
