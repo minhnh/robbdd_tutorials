@@ -4,11 +4,13 @@ import "scene_dsl:robots/robotiq_2f85.ktree"
 
 ns pps_mjc = "https://secorolab.github.io/models/scenes/pick-place-single-mjc/"
 
-// Each object draws independently, above the tallest object's bottom offset.
+// Each object draws its position and orientation independently above the table.
 // Gravity settles the objects on the table; initial overlaps are not rejected.
 distrib (ns=pps_mjc) object-position {
     uniform { dimension: 3 lower: (0.30, -0.30, 0.15) upper: (0.65, -0.05, 0.20) }
 }
+
+distrib (ns=pps_mjc) object-orientation { uniform-rotation }
 
 ktree inst (ns=pps_mjc) kinova of <kinova_tree>
 ktree inst (ns=pps_mjc) gripper of <gripper_tree>
@@ -135,7 +137,7 @@ scene inst (ns=pps_mjc) pick_place_scene_mjc {
                 pose cube_on_table {
                     wrt: <world_tree.table.table_top>
                     xyz: sample <object-position> m
-                    orientation: euler { axes: xyz extrinsic angles: (0, 0, 0) unit: deg }
+                    orientation: quat { sample <object-orientation> }
                 }
             }
         }
@@ -144,7 +146,7 @@ scene inst (ns=pps_mjc) pick_place_scene_mjc {
                 pose can_on_table {
                     wrt: <world_tree.table.table_top>
                     xyz: sample <object-position> m
-                    orientation: euler { axes: xyz extrinsic angles: (0, 0, 0) unit: deg }
+                    orientation: quat { sample <object-orientation> }
                 }
             }
         }
@@ -154,7 +156,7 @@ scene inst (ns=pps_mjc) pick_place_scene_mjc {
                 pose cereal-box_on_table {
                     wrt: <world_tree.table.table_top>
                     xyz: sample <object-position> m
-                    orientation: euler { axes: xyz extrinsic angles: (0, 0, 0) unit: deg }
+                    orientation: quat { sample <object-orientation> }
                 }
             }
         }
@@ -164,7 +166,7 @@ scene inst (ns=pps_mjc) pick_place_scene_mjc {
                 pose bottle_on_table {
                     wrt: <world_tree.table.table_top>
                     xyz: sample <object-position> m
-                    orientation: euler { axes: xyz extrinsic angles: (0, 0, 0) unit: deg }
+                    orientation: quat { sample <object-orientation> }
                 }
             }
         }
