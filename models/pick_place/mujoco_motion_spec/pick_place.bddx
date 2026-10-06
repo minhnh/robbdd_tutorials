@@ -39,7 +39,7 @@ obs policy (ns=tutorial_exec) object-at-pick-policy
 {
     observations: { <object-pose>, <pick-workspace-pose> }
     evaluator: linear distance {
-        less-than: 0.05 m
+        less-than: 0.3 m
         max time offset: 0.1 s
     }
 }
@@ -54,9 +54,9 @@ obs policy (ns=tutorial_exec) object-at-place-policy
     horizon: 2.0 seconds
 {
     observations: { <object-pose>, <place-workspace-pose> }
-    evaluator: linear distance {
-        less-than: 0.05 m
-        max time offset: 0.1 s
+    evaluator: py {
+        module: robbdd_tutorials.observation_evaluators,
+        attr: cube_inside_bin
     }
 }
 

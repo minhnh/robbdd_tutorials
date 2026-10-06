@@ -20,6 +20,7 @@ evt loop (ns=pp) pick_place_single_fsm_events {
     evt E_PICK_ENTERED,
     evt E_GRASP_ENTERED,
     evt E_LIFT_ENTERED,
+    evt E_PLACE_ABOVE_ENTERED,
     evt E_OPEN_ENTERED,
     evt E_RECOVER_ENTERED,
     evt E_PICK_START,
@@ -93,7 +94,11 @@ fsm (ns=pp) pick_place_single_fsm {
             do:   <T_GRASP_LIFT>,
             fires { <pick_place_single_fsm_events.E_LIFT_ENTERED>, <pick_place_single_fsm_events.E_PICK_END> }
         },
-        R_PLACE_ABOVE_READY { when: <pick_place_single_fsm_events.E_PLACE_ABOVE_READY>, do: <T_LIFT_PLACE_ABOVE> },
+        R_PLACE_ABOVE_READY {
+            when: <pick_place_single_fsm_events.E_PLACE_ABOVE_READY>,
+            do: <T_LIFT_PLACE_ABOVE>,
+            fires { <pick_place_single_fsm_events.E_PLACE_ABOVE_ENTERED> }
+        },
         R_PLACE_READY {
             when: <pick_place_single_fsm_events.E_PLACE_READY>,
             do: <T_PLACE_ABOVE_PLACE>,

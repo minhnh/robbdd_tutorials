@@ -37,11 +37,6 @@ context (ns=app) shared {
             wrt:        <kinova.base_link.base_link_origin>,
             as-seen-by: <kinova.base_link.base_link_origin>
         },
-        pose pose-table-observation-base {
-            of:         <table.table_observation_point>,
-            wrt:        <kinova.base_link.base_link_origin>,
-            as-seen-by: <kinova.base_link.base_link_origin>
-        },
         pose pose-bin-base {
             of:         <container.bin_observation_point>,
             wrt:        <kinova.base_link.base_link_origin>,
@@ -95,7 +90,7 @@ ros (ns=app) {
     always {
         publish at 20.0 Hz to <ros.publishers.scene-poses> with {
             <pickplace_objects.cube>: <shared.world.pose-cube-base>,
-            <pickplace_workspaces.table-ws>: <shared.world.pose-table-observation-base>,
+            <pickplace_workspaces.table-ws>: <shared.world.pose-table-base>,
             <pickplace_workspaces.bin-ws>: <shared.world.pose-bin-base>,
             <pickplace_agents.arm1>: <shared.world.pose-ee-base>,
         },
@@ -284,12 +279,11 @@ guarded-motion (ns=app) place-above {
 
     context {
         spec {
-            length place-x       = 0.40 m,
-            length place-y       = 0.24 m,
+            pose place-pose      = snapshot of <shared.world.pose-bin-base> on event <pp.E_PLACE_ABOVE_ENTERED>,
             length place-above-z = 0.22 m,
             length lifted-z      = 0.30 m,
             pose goal-pose-above = {
-                position: (<spec.place-x>, <spec.place-y>, <spec.place-above-z>) m,
+                position: (<spec.place-pose>.position.x, <spec.place-pose>.position.y, <spec.place-above-z>) m,
                 orientation: euler { axes: xyz extrinsic, angles: (<shared.spec.grasp-rot-x>, <shared.spec.grasp-rot-y>, <shared.spec.grasp-rot-z>) }
             }
         }
@@ -300,8 +294,8 @@ guarded-motion (ns=app) place-above {
     }
 
     while {
-        reach-x:       keeping <shared.world.pose-ee-base>.position.x         equal to <spec.place-x> within <shared.spec.satisfied-band>,
-        reach-y:       keeping <shared.world.pose-ee-base>.position.y         equal to <spec.place-y> within <shared.spec.satisfied-band>,
+        reach-x:       keeping <shared.world.pose-ee-base>.position.x         equal to <spec.place-pose>.position.x within <shared.spec.satisfied-band>,
+        reach-y:       keeping <shared.world.pose-ee-base>.position.y         equal to <spec.place-pose>.position.y within <shared.spec.satisfied-band>,
         reach-z:       keeping <shared.world.pose-ee-base>.position.z         equal to <spec.place-above-z> within <shared.spec.satisfied-band>,
         align-ori:     keeping <shared.world.pose-ee-base>.orientation        equal to <spec.goal-pose-above>.orientation within <shared.spec.satisfied-band-rot>,
         hold-elbow-angle: keeping <shared.world.elbow-angle> equal to <shared.spec.elbow-angle-target>,
@@ -318,25 +312,21 @@ guarded-motion (ns=app) place {
 
     context {
         spec {
-            length place-x      = 0.40 m,
-            length place-y      = 0.24 m,
-            length place-z      = 0.03 m,
-            length place-y-gate = 0.20 m,
             pose goal-pose-place = {
-                position: (<spec.place-x>, <spec.place-y>, <spec.place-z>) m,
+                position: (<place-above.spec.place-pose>.position.x, <place-above.spec.place-pose>.position.y, <place-above.spec.place-pose>.position.z) m,
                 orientation: euler { axes: xyz extrinsic, angles: (<shared.spec.grasp-rot-x>, <shared.spec.grasp-rot-y>, <shared.spec.grasp-rot-z>) }
             }
         }
     }
 
     when {
-        at-pre-place: <shared.world.pose-ee-base>.position.y greater than <place.spec.place-y-gate>
+        at-pre-place: <shared.world.pose-ee-base>.position equal to <place-above.spec.goal-pose-above>.position within <shared.spec.satisfied-band>
     }
 
     while {
-        reach-x:       keeping <shared.world.pose-ee-base>.position.x         equal to <spec.place-x> within <shared.spec.satisfied-band>,
-        reach-y:       keeping <shared.world.pose-ee-base>.position.y         equal to <spec.place-y> within <shared.spec.satisfied-band>,
-        reach-z:       keeping <shared.world.pose-ee-base>.position.z         equal to <spec.place-z> within <shared.spec.satisfied-band>,
+        reach-x:       keeping <shared.world.pose-ee-base>.position.x         equal to <place-above.spec.place-pose>.position.x within <shared.spec.satisfied-band>,
+        reach-y:       keeping <shared.world.pose-ee-base>.position.y         equal to <place-above.spec.place-pose>.position.y within <shared.spec.satisfied-band>,
+        reach-z:       keeping <shared.world.pose-ee-base>.position.z         equal to <place-above.spec.place-pose>.position.z within <shared.spec.satisfied-band>,
         align-ori:     keeping <shared.world.pose-ee-base>.orientation        equal to <spec.goal-pose-place>.orientation within <shared.spec.satisfied-band-rot>,
         hold-elbow-angle: keeping <shared.world.elbow-angle> equal to <shared.spec.elbow-angle-target>,
         close-gripper: keeping <shared.world.gripper-pos>                 equal to <shared.spec.gripper-closed> within <shared.spec.satisfied-band-rot>
@@ -378,13 +368,11 @@ guarded-motion (ns=app) retreat {
 
     context {
         spec {
-            length place-x       = 0.40 m,
-            length place-y       = 0.24 m,
             length place-above-z = 0.22 m,
             length retreat-z-lo  = 0.20 m,
             length retreat-z-hi  = 0.24 m,
             pose goal-pose-retreat = {
-                position: (<spec.place-x>, <spec.place-y>, <spec.place-above-z>) m,
+                position: (<place-above.spec.place-pose>.position.x, <place-above.spec.place-pose>.position.y, <spec.place-above-z>) m,
                 orientation: euler { axes: xyz extrinsic, angles: (<shared.spec.grasp-rot-x>, <shared.spec.grasp-rot-y>, <shared.spec.grasp-rot-z>) }
             }
         }
@@ -395,8 +383,8 @@ guarded-motion (ns=app) retreat {
     }
 
     while {
-        reach-x:       keeping <shared.world.pose-ee-base>.position.x         equal to <spec.place-x> within <shared.spec.satisfied-band>,
-        reach-y:       keeping <shared.world.pose-ee-base>.position.y         equal to <spec.place-y> within <shared.spec.satisfied-band>,
+        reach-x:       keeping <shared.world.pose-ee-base>.position.x         equal to <place-above.spec.place-pose>.position.x within <shared.spec.satisfied-band>,
+        reach-y:       keeping <shared.world.pose-ee-base>.position.y         equal to <place-above.spec.place-pose>.position.y within <shared.spec.satisfied-band>,
         reach-z:       keeping <shared.world.pose-ee-base>.position.z         equal to <spec.place-above-z> within <shared.spec.satisfied-band>,
         align-ori:     keeping <shared.world.pose-ee-base>.orientation        equal to <spec.goal-pose-retreat>.orientation within <shared.spec.satisfied-band-rot>,
         hold-elbow-angle: keeping <shared.world.elbow-angle> equal to <shared.spec.elbow-angle-target>,

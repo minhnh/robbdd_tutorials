@@ -42,6 +42,7 @@ if sys.argv[1:] == ['-m', 'pip', '--version']:
                   else [str(python), "-m", "pip", "install"])
         installs = [call for call in calls if call[:len(prefix)] == prefix]
         assert len(installs) == 9, calls
+        assert "zstandard" in installs[0]
         assert installs[-1][len(prefix):] == ["--no-deps", "-e", str(root / "pydeps/motion-spec")]
         assert ([str(python), "-m", "ensurepip", "--upgrade"] in calls) == (missing_pip and not use_uv)
 print("PASS: uv, pip, and pip bootstrap for an existing uv-created venv")

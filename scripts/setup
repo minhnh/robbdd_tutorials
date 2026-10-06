@@ -72,7 +72,7 @@ install_python_packages() {
     "${pip_cmd[@]}" \
         aiohttp behave click GitPython jinja2 numpy platformdirs protobuf \
         pyld pyshacl 'rdflib>=7.6.0' 'scipy>=1.16' textX textx-jinja \
-        textx_ls_core trinary
+        textx_ls_core trinary zstandard
 
     local project
     for project in "${projects[@]}"; do
@@ -120,9 +120,11 @@ EOF
 
 if [ "$MODE" = setup ]; then
     cp "$REPO_DIR/colcon_defaults.yaml" "$WS/colcon_defaults.yaml"
-    mkdir -p "$WS/pydeps"
-    vcs import "$WS" < "$REPO_DIR/repos/common.repos"
-    vcs import "$WS" < "$REPO_DIR/repos/$CONTEXT.repos"
+    mkdir -p "$WS/pydeps" "$WS/generations"
+    touch "$WS/pydeps/COLCON_IGNORE"
+    touch "$WS/generations/COLCON_IGNORE"
+    vcs import --recursive "$WS" < "$REPO_DIR/repos/common.repos"
+    vcs import --recursive "$WS" < "$REPO_DIR/repos/$CONTEXT.repos"
 
     rosdep update --rosdistro "$ROS_DISTRO"
     rosdep install --from-paths "$WS/src" --ignore-src --rosdistro "$ROS_DISTRO" -y \
@@ -142,13 +144,13 @@ source_file "$VENV/bin/activate"
 install_python_packages
 
 if [ "$CONTEXT" = mujoco ]; then
-    motion-spec setup stst orocos_kdl coord2b mj_kdl_wrapper \
-        --workspace "$WS" --ros --no-dev --no-editable
+    motion-spec setup STSTv4 orocos_kinematics_dynamics coord2b mj_kdl_wrapper \
+        --workspace "$WS" --ros
     [ ! -r "$WS/install/local_setup.bash" ] || source_file "$WS/install/local_setup.bash"
 fi
 
 cd "$WS"
-colcon build --base-paths "$WS/src"
+colcon build
 
 write_environment bash Bash BASH_VERSION
 write_environment zsh zsh ZSH_VERSION

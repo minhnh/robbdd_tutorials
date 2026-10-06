@@ -6,8 +6,24 @@ repositories:
   pydeps/motion-spec:
     type: git
     url: https://github.com/secorolab/motion-spec.git
-    version: dev
+    version: v0.1.0
   pydeps/motion-spec-dsl:
     type: git
     url: https://github.com/secorolab/motion-spec-dsl.git
-    version: dev
+    version: v0.1.1
+  src/orocos_kinematics_dynamics:
+    type: git
+    url: https://github.com/secorolab/orocos_kinematics_dynamics.git
+    version: vereshchagin-driver-weighting
+  src/coord2b:
+    type: git
+    url: https://github.com/rosym-project/coord2b.git
+    version: master
+  src/mj_kdl_wrapper:
+    type: git
+    url: https://github.com/vamsikalagaturu/mj_kdl_wrapper.git
+    version: v0.5.0
+  src/thirdparty/STSTv4:
+    type: git
+    url: https://github.com/jsnyders/STSTv4.git
+    version: e6152907c7f82aba7685c4f2630490968ffd6594

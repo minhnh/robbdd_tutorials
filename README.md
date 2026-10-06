@@ -6,10 +6,10 @@ RobBDD and BDDX.
 The repository separates the shared acceptance-test contract from each system
 under test:
 
-- `robbdd_tutorials/models/pick_place/common` contains the BDD, Scene, and
+- `models/pick_place/common` contains the BDD, Scene, and
   specification-only sorting extension shared by every
   implementation.
-- `robbdd_tutorials/models/pick_place/mujoco_motion_spec` contains the first
+- `models/pick_place/mujoco_motion_spec` contains the first
   execution setup, including its BDDX, using motion-spec and MuJoCo.
 - A BehaviorTree.CPP and Isaac Sim setup is planned but not runnable yet.
 
@@ -65,9 +65,8 @@ under `~/ros_bdd_ws/src`.
 
 The setup script also creates a Python vitual environment `~/ros_bdd_ws/.venv`
 for installing Python dependencies.
-Motion-spec manages STST and the compiled motion dependencies under
-`~/ros_bdd_ws/.ms-sources`; `mj_kdl_wrapper` is installed
-non-editably because it contains a compiled Python extension.
+The setup manifest clones STST and the compiled motion dependencies under
+`~/ros_bdd_ws/src`; `motion-spec setup` builds them into `~/ros_bdd_ws/install`.
 
 Source the generated file matching the current shell:
 
