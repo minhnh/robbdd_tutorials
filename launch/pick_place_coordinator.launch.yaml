@@ -1,0 +1,18 @@
+%YAML 1.2
+---
+launch:
+  - arg:
+      name: "config"
+      default: "$(find-pkg-share robbdd_tutorials)/config/pick_place.yaml"
+  - arg:
+      name: "graph_models"
+      default: "$(find-pkg-share robbdd_tutorials)/models/pick_place/mujoco_motion_spec/graph-models.yaml"
+  - node:
+      pkg: "bdd_exec_ros2"
+      exec: "bdd_coordination_node"
+      namespace: "bdd"
+      name: "test_coordinator"
+      param:
+        - from: "$(var config)"
+        - name: "graph_models"
+          value: "$(var graph_models)"

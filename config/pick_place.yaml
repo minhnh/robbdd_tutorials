@@ -1,0 +1,7 @@
+/bdd/test_coordinator:
+  ros__parameters:
+    event_topic: "/bdd/events"
+    bhv_server_name: "/bdd/pickplace_bhv_server"
+    status_timer_period: 0.5
+    use_sim_time: false
+    timeout: 60.0

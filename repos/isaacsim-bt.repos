@@ -1,0 +1,6 @@
+# WIP: Isaac Sim dependencies will be added when that setup is executable.
+repositories:
+  src/bdd_bt_executor_ros2:
+    type: git
+    url: https://github.com/minhnh/bdd_bt_executor_ros2.git
+    version: jazzy

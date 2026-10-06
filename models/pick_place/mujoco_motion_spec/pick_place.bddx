@@ -1,0 +1,72 @@
+import "../common/pick_place.bdd"
+import "pick_place_single.scenex"
+
+ns tutorial_exec = "https://secorolab.github.io/robbdd/tutorials/pick-place/execution/"
+
+bhv impl (ns=tutorial_exec) pick-place-server {
+    bhv action: "/bdd/pickplace_bhv_server"
+}
+
+obs provider (ns=tutorial_exec) ground-truth {
+    ros topic: "/sim/ground_truth/recognized_objects"
+    type: "vision_msgs/msg/Detection3DArray"
+}
+
+observation (ns=tutorial_exec) object-pose {
+    provider: <ground-truth> observes var <pick-place-template.target-object>
+    time extractor: py { module: bdd_exec_ros2.observation, attr: header_stamp }
+    entity mapper: py { module: bdd_exec_ros2.observation, attr: map_detection3d_array_by_uri }
+}
+observation (ns=tutorial_exec) pick-workspace-pose {
+    provider: <ground-truth> observes var <pick-place-template.pick-workspace>
+    time extractor: py { module: bdd_exec_ros2.observation, attr: header_stamp }
+    entity mapper: py { module: bdd_exec_ros2.observation, attr: map_detection3d_array_by_uri }
+}
+observation (ns=tutorial_exec) place-workspace-pose {
+    provider: <ground-truth> observes var <pick-place-template.place-workspace>
+    time extractor: py { module: bdd_exec_ros2.observation, attr: header_stamp }
+    entity mapper: py { module: bdd_exec_ros2.observation, attr: map_detection3d_array_by_uri }
+}
+observation (ns=tutorial_exec) end-effector-pose {
+    provider: <ground-truth> observes var <pick-place-template.robot>
+    time extractor: py { module: bdd_exec_ros2.observation, attr: header_stamp }
+    entity mapper: py { module: bdd_exec_ros2.observation, attr: map_detection3d_array_by_uri }
+}
+
+obs policy (ns=tutorial_exec) object-at-pick-policy
+    for <pick-place-template.object-at-pick>
+    horizon: 2.0 seconds
+{
+    observations: { <object-pose>, <pick-workspace-pose> }
+    evaluator: linear distance {
+        less-than: 0.3 m
+        max time offset: 0.1 s
+    }
+}
+obs policy (ns=tutorial_exec) object-not-dropped-policy
+    for <pick-place-template.object-held>
+{
+    observations: { <object-pose>, <end-effector-pose> }
+    evaluator: linear distance { less-than: 0.12 m max time offset: 0.1 s }
+}
+obs policy (ns=tutorial_exec) object-at-place-policy
+    for <pick-place-template.object-at-place>
+    horizon: 2.0 seconds
+{
+    observations: { <object-pose>, <place-workspace-pose> }
+    evaluator: py {
+        module: robbdd_tutorials.observation_evaluators,
+        attr: cube_inside_bin
+    }
+}
+
+Scenario Exec (ns=tutorial_exec) mujoco-pick-place {
+    variant: <pick-place-story.nominal-pick-place>
+    scene inst: <pick_place_scene_mjc>
+    bhv: <pick-place-server>
+    policies: {
+        <object-at-pick-policy>,
+        <object-not-dropped-policy>,
+        <object-at-place-policy>
+    }
+}
