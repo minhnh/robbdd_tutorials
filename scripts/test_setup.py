@@ -84,10 +84,8 @@ if name == 'git':
     if 'rev-parse' in args:
         if '--show-toplevel' in args:
             print(args[args.index('-C') + 1])
-        elif 'HEAD' in args:
-            print('pinned')
-        else:
-            print(os.environ.get('MOCK_TAG', 'pinned'))
+    elif 'branch' in args:
+        print(os.environ.get('MOCK_BRANCH', 'fix/jazzy-asyncio-sleep'))
     elif 'status' in args:
         print(os.environ.get('MOCK_DIRTY', ''), end='')
     elif 'clone' in args:
@@ -109,7 +107,7 @@ if name == 'colcon' and args[0] == 'list':
 
     def run_setup(context="isaacsim-bt", options=(), answer=None, extra=None):
         log.write_text("")
-        args = ["bash", str(repo / "scripts/setup"), *options, context, "jazzy", "6.1.0"]
+        args = ["bash", str(repo / "scripts/setup"), *options, context, "jazzy"]
         if answer is None:
             result = subprocess.run(args, env={**env, **(extra or {})},
                                     stdin=subprocess.DEVNULL, capture_output=True, text=True)
@@ -150,21 +148,32 @@ if name == 'colcon' and args[0] == 'list':
         for ext in ("bash", "zsh"):
             generated = (ws / f"setup-robbdd-tutorials.{ext}").read_text()
             assert generated.index(str(ros_ws / "install")) < generated.index(str(ws / "install"))
-            assert f"export ROBBDD_ISAACSIM_VERSION='6.1.0'" in generated
+            assert "ROBBDD_ISAACSIM_VERSION" not in generated
             assert f"export ROBBDD_ISAAC_ROS_WS='{ros_ws}'" in generated
 
-    # Isaac does not depend on Ant; version mismatch/dirty checkout fail before building.
+    # Rebuilds allow local edits; initial setup still rejects dirty checkouts.
     (commands / "ant").unlink()
-    result, calls = run_setup(options=("--build",))
-    assert result.returncode == 0, result.stderr
-    for extra in ({"MOCK_DIRTY": " M modified\n"}, {"MOCK_TAG": "different"}):
+    for extra in ({}, {"MOCK_DIRTY": " M modified\n"}):
         result, calls = run_setup(options=("--build",), extra=extra)
-        assert result.returncode != 0
-        assert not any(name == "colcon" for name, args, cwd in calls)
+        assert result.returncode == 0, result.stderr
+        assert sum(name == "colcon" and args[0] == "build" for name, args, cwd in calls) == 2
+        assert not any(name == "git" and "status" in args for name, args, cwd in calls)
+    result, calls = run_setup(extra={"MOCK_DIRTY": " M modified\n"})
+    assert result.returncode != 0
+    assert not any(name == "colcon" for name, args, cwd in calls)
+    result, calls = run_setup(options=("--build",), extra={"MOCK_BRANCH": "wrong"})
+    assert result.returncode != 0
+    assert not any(name == "colcon" for name, args, cwd in calls)
     result, calls = run_setup(extra={"ROBBDD_ISAAC_ROS_WS": str(root / "new checkout/jazzy_ws")})
     assert result.returncode == 0, result.stderr
-    assert any(name == "git" and args[0] == "clone" and "IsaacSim-6.1.0" in args
+    assert any(name == "git" and args[0] == "clone" and "fix/jazzy-asyncio-sleep" in args
+               and "https://github.com/minhnh/IsaacSim-ros_workspaces.git" in args
                for name, args, cwd in calls)
+
+    result = subprocess.run(
+        ["bash", str(repo / "scripts/setup"), "isaacsim-bt", "jazzy", "6.1.0"],
+        env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+    assert result.returncode != 0 and "too many arguments" in result.stderr
 
     # MuJoCo prompt selects Ant and never accesses the NVIDIA workspace.
     ant = commands / "ant"
@@ -179,17 +188,17 @@ if name == 'colcon' and args[0] == 'list':
     assert not any(name == "git" for name, args, cwd in calls), calls
     assert str(ros_ws / "install") not in (ws / "setup-robbdd-tutorials.bash").read_text()
 
-    # The helper must forward context/version and preserve the pin on pull.
+    # The helper must forward context and preserve the branch on pull.
     (repo / "scripts/setup").write_text(mock)
     helper_env = {**env, "ROBBDD_TUTORIAL_WS": str(ws),
-                  "ROBBDD_TUTORIAL_CONTEXT": "isaacsim-bt", "ROBBDD_ISAACSIM_VERSION": "6.1.0",
+                  "ROBBDD_TUTORIAL_CONTEXT": "isaacsim-bt",
                   "ROS_DISTRO": "jazzy"}
     log.write_text("")
     subprocess.run([str(repo / "scripts/bdd_tutorial"), "build"], env=helper_env, check=True)
     calls = [json.loads(line) for line in log.read_text().splitlines()]
-    assert calls[-1][1] == ["--build", "isaacsim-bt", "jazzy", "6.1.0"], calls
+    assert calls[-1][1] == ["--build", "isaacsim-bt", "jazzy"], calls
     log.write_text("")
     subprocess.run([str(repo / "scripts/bdd_tutorial"), "pull"], env=helper_env, check=True)
     calls = [json.loads(line) for line in log.read_text().splitlines()]
-    assert calls[-1][:2] == ["git", ["-C", str(nvidia), "fetch", "origin"]], calls
-print("PASS: setup prompts, sibling underlay, build order, pin checks, and helper persistence")
+    assert calls[-1][:2] == ["git", ["-C", str(nvidia), "fetch", "https://github.com/minhnh/IsaacSim-ros_workspaces.git"]], calls
+print("PASS: setup prompts, sibling underlay, build order, branch checks, and helper persistence")

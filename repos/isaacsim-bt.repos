@@ -1,4 +1,5 @@
-# NVIDIA MoveIt dependencies are built in a sibling workspace by scripts/setup.
+# Isaac MoveIt dependencies are built in a sibling fork by scripts/setup.
+# Jazzy fix branch: https://github.com/isaac-sim/IsaacSim-ros_workspaces/issues/27
 # The tutorial behavior remains under development.
 repositories:
   src/bdd_bt_executor_ros2:

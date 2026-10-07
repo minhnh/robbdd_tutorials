@@ -7,10 +7,10 @@ WS="$(cd -- "$REPO_DIR/../.." && pwd -P)"
 
 usage() {
     cat <<'EOF'
-Usage: scripts/setup [--build] [--install-system-packages] [mujoco|isaacsim-bt] [ros-distro] [isaacsim-version]
+Usage: scripts/setup [--build] [--install-system-packages] [mujoco|isaacsim-bt] [ros-distro]
 
 The repository must be cloned as <workspace>/src/robbdd_tutorials.
-Defaults: mujoco, jazzy, Isaac Sim 6.1.0.
+Defaults: mujoco, jazzy. Isaac setup uses the minhnh fork fix/jazzy-asyncio-sleep branch.
 ROBBDD_ISAAC_ROS_WS overrides the sibling NVIDIA ROS workspace path.
 System package installation is optional; --build never prompts.
 EOF
@@ -31,14 +31,12 @@ while [[ "${1:-}" == --* ]]; do
     shift
 done
 case "${1:-}" in -h) usage; exit 0 ;; esac
-[ "$#" -le 3 ] || die "too many arguments"
+[ "$#" -le 2 ] || die "too many arguments"
 
 CONTEXT="${1:-mujoco}"
 ROS_DISTRO="${2:-${ROS_DISTRO:-jazzy}}"
-ISAACSIM_VERSION="${3:-${ROBBDD_ISAACSIM_VERSION:-6.1.0}}"
 case "$CONTEXT" in mujoco|isaacsim-bt) ;; *) die "unknown context: $CONTEXT" ;; esac
 [[ "$ROS_DISTRO" =~ ^[a-z]+$ ]] || die "invalid ROS distribution: $ROS_DISTRO"
-[[ "$ISAACSIM_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "invalid Isaac Sim version: $ISAACSIM_VERSION"
 [ "$REPO_DIR" = "$WS/src/robbdd_tutorials" ] \
     || die "clone this repository as <workspace>/src/robbdd_tutorials"
 [ -r "/opt/ros/$ROS_DISTRO/setup.bash" ] \
@@ -115,24 +113,26 @@ install_python_packages() {
 }
 
 setup_isaac_underlay() {
-    local checkout tag="IsaacSim-$ISAACSIM_VERSION"
+    local checkout ref=fix/jazzy-asyncio-sleep
+    # Temporary gripper fix: https://github.com/isaac-sim/IsaacSim-ros_workspaces/issues/27
     checkout="$(dirname -- "$ISAAC_ROS_WS")"
     [ "${ISAAC_ROS_WS##*/}" = "${ROS_DISTRO}_ws" ] \
         || die "ROBBDD_ISAAC_ROS_WS must end in ${ROS_DISTRO}_ws"
     if [ ! -e "$checkout" ]; then
         [ "$MODE" = setup ] || die "NVIDIA checkout missing; run setup first"
-        git clone --branch "$tag" --depth 1 \
-            https://github.com/isaac-sim/IsaacSim-ros_workspaces.git "$checkout"
+        git clone --branch "$ref" --depth 1 \
+            https://github.com/minhnh/IsaacSim-ros_workspaces.git "$checkout"
     fi
     [ "$(git -C "$checkout" rev-parse --show-toplevel)" = "$checkout" ] \
         || die "$checkout must be the NVIDIA repository root"
-    [ -z "$(git -C "$checkout" status --porcelain)" ] \
-        || die "NVIDIA checkout has local changes; resolve them before setup/build"
-    [ "$(git -C "$checkout" rev-parse HEAD)" = \
-      "$(git -C "$checkout" rev-parse "refs/tags/$tag^{commit}")" ] \
-        || die "NVIDIA checkout must be pinned to $tag; select a separate checkout or switch it explicitly"
+    if [ "$MODE" = setup ]; then
+        [ -z "$(git -C "$checkout" status --porcelain)" ] \
+            || die "NVIDIA checkout has local changes; resolve them before setup"
+    fi
+    [ "$(git -C "$checkout" branch --show-current)" = "$ref" ] \
+        || die "NVIDIA checkout must use $ref from the minhnh fork; switch it explicitly (issue #27)"
     [ -d "$ISAAC_ROS_WS/src/moveit/isaac_moveit" ] \
-        || die "NVIDIA $tag does not provide the requested $ROS_DISTRO MoveIt workspace"
+        || die "Isaac fork does not provide the requested $ROS_DISTRO MoveIt workspace"
     git -C "$checkout" submodule update --init --recursive -- \
         "${ROS_DISTRO}_ws/src/moveit/moveit_resources" \
         "${ROS_DISTRO}_ws/src/moveit/topic_based_ros2_control"
@@ -176,7 +176,6 @@ alias roscd=colcon_cd
 [ "\$_robbdd_tutorial_had_nounset" -eq 1 ] && set -u || set +u
 export ROBBDD_TUTORIAL_WS='$WS'
 export ROBBDD_TUTORIAL_CONTEXT='$CONTEXT'
-export ROBBDD_ISAACSIM_VERSION='$ISAACSIM_VERSION'
 export ROBBDD_ISAAC_ROS_WS='$ISAAC_ROS_WS'
 export BDD_TUTORIAL='$SCRIPT_DIR/bdd_tutorial'
 export MOTION_SPEC_WS='$WS'

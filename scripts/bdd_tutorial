@@ -9,7 +9,7 @@ usage() {
     cat <<'EOF'
 Usage: bdd_tutorial <command>
 
-  pull    Pull src/ and pydeps/; fetch the pinned NVIDIA checkout without changing its version.
+  pull    Pull src/ and pydeps/; fetch the Isaac fork without changing its fix branch.
   build   Reinstall local Python packages and rebuild the ROS workspace.
   source  Print the environment file for the current login shell.
 EOF
@@ -21,13 +21,12 @@ case "${1:-}" in
         vcs pull "$WS/pydeps"
         if [ "${ROBBDD_TUTORIAL_CONTEXT:-mujoco}" = isaacsim-bt ]; then
             : "${ROBBDD_ISAAC_ROS_WS:?source the generated tutorial environment first}"
-            git -C "$(dirname -- "$ROBBDD_ISAAC_ROS_WS")" fetch origin
+            git -C "$(dirname -- "$ROBBDD_ISAAC_ROS_WS")" fetch https://github.com/minhnh/IsaacSim-ros_workspaces.git
         fi
         ;;
     build)
         exec "$SCRIPT_DIR/setup" --build \
-            "${ROBBDD_TUTORIAL_CONTEXT:-mujoco}" "${ROS_DISTRO:-jazzy}" \
-            "${ROBBDD_ISAACSIM_VERSION:-6.1.0}"
+            "${ROBBDD_TUTORIAL_CONTEXT:-mujoco}" "${ROS_DISTRO:-jazzy}"
         ;;
     source)
         case "${SHELL##*/}" in zsh) ext=zsh ;; *) ext=bash ;; esac

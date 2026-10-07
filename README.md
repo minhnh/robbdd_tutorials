@@ -57,8 +57,7 @@ For execution in MuJoCo with `motion-spec`:
 For execution in Isaac Sim with MoveIt and `BehaviorTree.CPP`:
 
 ```sh
-ISAAC_VERSION=6.1.0
-./scripts/setup isaacsim-bt "$ROS_DIST" "$ISAAC_VERSION"
+./scripts/setup isaacsim-bt "$ROS_DIST"
 ```
 
 Source the generated file matching the current shell:
@@ -151,20 +150,26 @@ The setup script:
 
 #### `BehaviorTree.CPP` & MoveIt in Isaac Sim
 
-- Uses the `ISAAC_VERSION` passed in the sample command to select NVIDIA's
-  `IsaacSim-${ISAAC_VERSION}` tag, cloning the repository beside the tutorial workspace,
-  into `../IsaacSim-ros_workspaces`.
+- Clones [the temporary Isaac workspace fork](https://github.com/minhnh/IsaacSim-ros_workspaces)
+  beside the tutorial workspace, into `../IsaacSim-ros_workspaces`.
+- Always uses the fork's `fix/jazzy-asyncio-sleep` branch; setup currently has no
+  Isaac Sim version argument or tag selection.
+- The branch fixes the gripper callback's `no running event loop` error reported
+  in [upstream issue #27](https://github.com/isaac-sim/IsaacSim-ros_workspaces/issues/27).
+  The fix uses a ROS timer/future so joint-command publishing continues during the wait.
 - Builds the MoveIt dependency closure in `${ROS_DIST}_ws` (`jazzy_ws` in the example);
   the generated environment
   sources this underlay before the tutorial workspace.
 - Override the selected ROS workspace with
   `ROBBDD_ISAAC_ROS_WS=/absolute/path/IsaacSim-ros_workspaces/${ROS_DIST}_ws`.
-- Existing checkouts must be clean and already at the selected version. Setup
-  does not switch or overwrite them.
+- Initial setup requires a clean checkout on `fix/jazzy-asyncio-sleep`.
+  Setup does not switch or overwrite it.
+- `--build` allows local edits on that branch, so the rebuild uses your current sources.
 - Initializes only the selected distribution's MoveIt resource and topic-based
   control submodules.
-- `bdd_tutorial build` preserves the context, version, and underlay location.
-- `bdd_tutorial pull` fetches NVIDIA updates without changing the pinned version.
+- `bdd_tutorial build` preserves the context and underlay location.
+- `bdd_tutorial pull` fetches the fork without switching or advancing the fix
+  branch; update the checkout explicitly when adopting newer fixes.
 
 ## Test Execution
 
