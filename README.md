@@ -21,30 +21,39 @@ contains the requirements and walks through the common models.
 
 Common dependencies:
 
-- [ROS 2 Jazzy on Ubuntu 24.04](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html)
-- [Git LFS](https://git-lfs.com/) for pulling binary resources
-- [vcs2l](https://github.com/ros-infrastructure/vcs2l#how-to-install-vcs2l)
-  provides the `vcs` command used by the setup script.
-- [`python3-colcon-common-extensions`](https://colcon.readthedocs.io/en/released/user/installation.html#quick-directory-changes)
-  provides `/usr/share/colcon_cd/function/colcon_cd.sh` for the generated environment scripts.
-- (optional) [uv](https://docs.astral.sh/uv/getting-started/installation/) for managing Python
-  virtual environments. Setup uses `uv` when it is already available, otherwise the
-  virtual environment's `python -m pip`.
+- **Required:** [ROS 2 Jazzy on Ubuntu 24.04](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html),
+  with its apt repository configured before setup.
+- **Required:** Git to clone repositories and Git LFS to fetch binary resources.
+- **Required:** [vcs2l](https://github.com/ros-infrastructure/vcs2l) (`python3-vcs2l`)
+  for managing repositories in `repos/*.repos` files.
+- **Required:** `python3-colcon-common-extensions` to build ROS packages and provide `colcon_cd`.
+- **Required:** `python3-rosdep` to install ROS package dependencies; initialize it once with `sudo rosdep init`.
+- **Required:** `build-essential`, CMake, and `python3-venv` for compilation and the Python environment.
+- **Optional:** [uv](https://docs.astral.sh/uv/) for Python package installation. Setup uses it when available, otherwise pip.
 
-`motion-spec` dependencies:
+Execution-context dependencies:
 
-- [Ant](https://ant.apache.org/manual/install.html)
+- **MuJoCo only:** [Ant](https://ant.apache.org/) for the `motion-spec` setup.
+- **Isaac Sim only:** Isaac Sim, installed separately. Setup builds matching [Isaac Sim ROS workspace](https://github.com/isaac-sim/IsaacSim-ros_workspaces)
+  but does not install the simulator.
 
-After configuring the ROS apt repository above, install these together:
+Setup offers to install common system prerequisites and adds Ant only for MuJoCo.
+It prints the exact `sudo apt install` command and asks before running it.
+Declining leaves the prerequisite checks enabled. Noninteractive setup skips the
+prompt; use `--install-system-packages` to opt in explicitly. `--build` never
+installs system packages or prompts.
+
+To install prerequisites manually after configuring the ROS apt repository:
 
 ```bash
-sudo apt update
-sudo apt install git git-lfs python3-vcs2l python3-colcon-common-extensions
-git lfs install
-# Optional: motion-spec setup
-# sudo apt install ant
-sudo rosdep init  # once per machine; skip if already initialized
+sudo apt install git git-lfs build-essential cmake python3-vcs2l \
+  python3-colcon-common-extensions python3-rosdep python3-venv
+sudo apt install ant  # MuJoCo only
+sudo rosdep init      # once per machine; skip if already initialized
 ```
+
+Setup uses `rosdep` for the selected packages’ ROS dependencies afterward;
+`rosdep install` may also request sudo authentication.
 
 Then clone this repository as a ROS package under `src` and run its setup script:
 
@@ -59,14 +68,35 @@ cd ~/ros_bdd_ws/src/robbdd_tutorials
 The setup uses `vcs2l` to clone repositories in `repos/*.repos` files.
 There are separate files for [common repositories](./repos/common.repos),
 execution setup with [`motion-spec` - MuJoCo](./repos/mujoco.repos),
-and with [`BehaviorTree.CPP` - Isaac Sim](./repos/isaacsim-bt.repos) (WIP).
+and with [`BehaviorTree.CPP` - Isaac Sim](./repos/isaacsim-bt.repos).
 This clones editable Python sources under `~/ros_bdd_ws/pydeps` and ROS packages
 under `~/ros_bdd_ws/src`.
 
-The setup script also creates a Python vitual environment `~/ros_bdd_ws/.venv`
+The setup script also creates a Python virtual environment `~/ros_bdd_ws/.venv`
 for installing Python dependencies.
 The setup manifest clones STST and the compiled motion dependencies under
 `~/ros_bdd_ws/src`; `motion-spec setup` builds them into `~/ros_bdd_ws/install`.
+
+For the Isaac context:
+
+```bash
+./scripts/setup isaacsim-bt jazzy 6.1.0
+```
+
+This clones NVIDIA’s pinned `IsaacSim-6.1.0` repository beside the tutorial
+workspace, into `../IsaacSim-ros_workspaces`, and builds the MoveIt dependency
+closure in its `jazzy_ws`. The generated environment sources this underlay before
+the tutorial workspace. Override the selected ROS workspace with
+`ROBBDD_ISAAC_ROS_WS=/absolute/path/IsaacSim-ros_workspaces/jazzy_ws`.
+Existing checkouts must be clean and already at the selected version; setup does
+not switch or overwrite them. Only the selected distribution’s MoveIt resource
+and topic-based control submodules are initialized.
+
+`bdd_tutorial build` preserves the context, version, and underlay location.
+`bdd_tutorial pull` fetches NVIDIA updates without changing its pinned version.
+To change versions, select an appropriate clean checkout and rerun setup with
+that version. The Isaac pick/place behavior is still under development; setup
+alone does not make it runnable.
 
 Source the generated file matching the current shell:
 
@@ -79,8 +109,8 @@ The sourced environment loads `colcon_cd` and aliases it as `roscd`, so
 `roscd robbdd_tutorials` jumps to this package. It also provides two maintenance commands:
 
 ```bash
-bdd_tutorial pull   # call vcs pull on all *.repos
-bdd_tutorial build  # install
+bdd_tutorial pull   # update tutorial dependencies; fetch the NVIDIA checkout
+bdd_tutorial build  # reinstall local Python packages and rebuild
 ```
 
 ## Test Execution

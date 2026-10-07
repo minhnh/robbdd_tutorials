@@ -7,10 +7,12 @@ WS="$(cd -- "$REPO_DIR/../.." && pwd -P)"
 
 usage() {
     cat <<'EOF'
-Usage: scripts/setup [--build] [mujoco|isaacsim-bt] [ros-distro]
+Usage: scripts/setup [--build] [--install-system-packages] [mujoco|isaacsim-bt] [ros-distro] [isaacsim-version]
 
 The repository must be cloned as <workspace>/src/robbdd_tutorials.
-The default execution context is mujoco and the default ROS distro is jazzy.
+Defaults: mujoco, jazzy, Isaac Sim 6.1.0.
+ROBBDD_ISAAC_ROS_WS overrides the sibling NVIDIA ROS workspace path.
+System package installation is optional; --build never prompts.
 EOF
 }
 
@@ -18,24 +20,56 @@ die() { printf 'setup: %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null || die "missing command: $1"; }
 
 MODE=setup
-if [ "${1:-}" = --build ]; then
-    MODE=build
+INSTALL_SYSTEM_PACKAGES=prompt
+while [[ "${1:-}" == --* ]]; do
+    case "$1" in
+        --build) MODE=build ;;
+        --install-system-packages) INSTALL_SYSTEM_PACKAGES=yes ;;
+        --help) usage; exit 0 ;;
+        *) die "unknown option: $1" ;;
+    esac
     shift
-fi
-case "${1:-}" in -h|--help) usage; exit 0 ;; esac
+done
+case "${1:-}" in -h) usage; exit 0 ;; esac
+[ "$#" -le 3 ] || die "too many arguments"
 
 CONTEXT="${1:-mujoco}"
 ROS_DISTRO="${2:-${ROS_DISTRO:-jazzy}}"
+ISAACSIM_VERSION="${3:-${ROBBDD_ISAACSIM_VERSION:-6.1.0}}"
 case "$CONTEXT" in mujoco|isaacsim-bt) ;; *) die "unknown context: $CONTEXT" ;; esac
+[[ "$ROS_DISTRO" =~ ^[a-z]+$ ]] || die "invalid ROS distribution: $ROS_DISTRO"
+[[ "$ISAACSIM_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "invalid Isaac Sim version: $ISAACSIM_VERSION"
 [ "$REPO_DIR" = "$WS/src/robbdd_tutorials" ] \
     || die "clone this repository as <workspace>/src/robbdd_tutorials"
 [ -r "/opt/ros/$ROS_DISTRO/setup.bash" ] \
-    || die "ROS $ROS_DISTRO is not installed under /opt/ros"
+    || die "install ROS $ROS_DISTRO and configure its apt repository first"
+ISAAC_ROS_WS="${ROBBDD_ISAAC_ROS_WS:-$WS/../IsaacSim-ros_workspaces/${ROS_DISTRO}_ws}"
+# Keep generated shell files safe and resolve relative override paths consistently.
+[[ "$WS$ISAAC_ROS_WS" != *"'"* && "$WS$ISAAC_ROS_WS" != *$'\n'* ]] \
+    || die "workspace paths cannot contain quotes or newlines"
+ISAAC_ROS_WS="$(realpath -m -- "$ISAAC_ROS_WS")"
 
+install_system_packages() {
+    [ "$MODE" = setup ] || return 0
+    local packages=(git git-lfs build-essential cmake python3-vcs2l
+                    python3-colcon-common-extensions python3-rosdep python3-venv)
+    [ "$CONTEXT" != mujoco ] || packages+=(ant)
+    local answer="$INSTALL_SYSTEM_PACKAGES"
+    if [ "$answer" = prompt ] && [ ! -t 0 ]; then return 0; fi
+    printf 'System prerequisites for %s:\n' "$CONTEXT"
+    printf '  sudo apt install'; printf ' %q' "${packages[@]}"; printf '\n'
+    if [ "$answer" = prompt ]; then
+        read -r -p 'Install these packages? [y/N] ' answer || answer=no
+    fi
+    case "$answer" in y|Y|yes|YES) sudo apt install "${packages[@]}" ;; esac
+}
+
+install_system_packages
+need git
 need colcon
-need ant
 need rosdep
 need vcs
+[ "$CONTEXT" != mujoco ] || need ant
 
 VENV="$WS/.venv"
 
@@ -80,9 +114,47 @@ install_python_packages() {
     done
 }
 
+setup_isaac_underlay() {
+    local checkout tag="IsaacSim-$ISAACSIM_VERSION"
+    checkout="$(dirname -- "$ISAAC_ROS_WS")"
+    [ "${ISAAC_ROS_WS##*/}" = "${ROS_DISTRO}_ws" ] \
+        || die "ROBBDD_ISAAC_ROS_WS must end in ${ROS_DISTRO}_ws"
+    if [ ! -e "$checkout" ]; then
+        [ "$MODE" = setup ] || die "NVIDIA checkout missing; run setup first"
+        git clone --branch "$tag" --depth 1 \
+            https://github.com/isaac-sim/IsaacSim-ros_workspaces.git "$checkout"
+    fi
+    [ "$(git -C "$checkout" rev-parse --show-toplevel)" = "$checkout" ] \
+        || die "$checkout must be the NVIDIA repository root"
+    [ -z "$(git -C "$checkout" status --porcelain)" ] \
+        || die "NVIDIA checkout has local changes; resolve them before setup/build"
+    [ "$(git -C "$checkout" rev-parse HEAD)" = \
+      "$(git -C "$checkout" rev-parse "refs/tags/$tag^{commit}")" ] \
+        || die "NVIDIA checkout must be pinned to $tag; select a separate checkout or switch it explicitly"
+    [ -d "$ISAAC_ROS_WS/src/moveit/isaac_moveit" ] \
+        || die "NVIDIA $tag does not provide the requested $ROS_DISTRO MoveIt workspace"
+    git -C "$checkout" submodule update --init --recursive -- \
+        "${ROS_DISTRO}_ws/src/moveit/moveit_resources" \
+        "${ROS_DISTRO}_ws/src/moveit/topic_based_ros2_control"
+    (
+        cd "$ISAAC_ROS_WS"
+        if [ "$MODE" = setup ]; then
+            local paths=() selected
+            selected="$(colcon list --base-paths src/moveit --packages-up-to isaac_moveit --paths-only)"
+            [ -n "$selected" ] || die "no NVIDIA MoveIt packages found"
+            mapfile -t paths <<< "$selected"
+            rosdep install --from-paths "${paths[@]}" --ignore-src --rosdistro "$ROS_DISTRO" -y
+        fi
+        colcon build --base-paths src/moveit --packages-up-to isaac_moveit
+    )
+    source_file "$ISAAC_ROS_WS/install/local_setup.bash"
+}
+
 write_environment() {
     local ext="$1" shell_name="$2" shell_var="$3"
     local file="$WS/setup-robbdd-tutorials.$ext"
+    local underlay=""
+    [ "$CONTEXT" != isaacsim-bt ] || underlay="source '$ISAAC_ROS_WS/install/local_setup.$ext'"
     cat > "$file" <<EOF
 # Generated by robbdd_tutorials/scripts/setup. Source this file.
 if [ -z "\${$shell_var:-}" ]; then
@@ -93,6 +165,7 @@ _robbdd_tutorial_had_nounset=0
 [[ -o nounset ]] && _robbdd_tutorial_had_nounset=1
 set +u
 source '/opt/ros/$ROS_DISTRO/setup.$ext'
+$underlay
 source '$VENV/bin/activate'
 source '$WS/install/local_setup.$ext'
 source /usr/share/colcon_cd/function/colcon_cd.sh
@@ -103,6 +176,8 @@ alias roscd=colcon_cd
 [ "\$_robbdd_tutorial_had_nounset" -eq 1 ] && set -u || set +u
 export ROBBDD_TUTORIAL_WS='$WS'
 export ROBBDD_TUTORIAL_CONTEXT='$CONTEXT'
+export ROBBDD_ISAACSIM_VERSION='$ISAACSIM_VERSION'
+export ROBBDD_ISAAC_ROS_WS='$ISAAC_ROS_WS'
 export BDD_TUTORIAL='$SCRIPT_DIR/bdd_tutorial'
 export MOTION_SPEC_WS='$WS'
 export MOTION_SPEC_GEN='$WS/generations'
@@ -118,6 +193,14 @@ unset _robbdd_tutorial_had_nounset
 EOF
 }
 
+source_file "/opt/ros/$ROS_DISTRO/setup.bash"
+if [ "$MODE" = setup ]; then
+    [ -e /etc/ros/rosdep/sources.list.d/20-default.list ] \
+        || die "initialize rosdep once with: sudo rosdep init"
+    rosdep update --rosdistro "$ROS_DISTRO"
+fi
+[ "$CONTEXT" != isaacsim-bt ] || setup_isaac_underlay
+
 if [ "$MODE" = setup ]; then
     cp "$REPO_DIR/colcon_defaults.yaml" "$WS/colcon_defaults.yaml"
     mkdir -p "$WS/pydeps" "$WS/generations"
@@ -126,7 +209,6 @@ if [ "$MODE" = setup ]; then
     vcs import --recursive "$WS" < "$REPO_DIR/repos/common.repos"
     vcs import --recursive "$WS" < "$REPO_DIR/repos/$CONTEXT.repos"
 
-    rosdep update --rosdistro "$ROS_DISTRO"
     rosdep install --from-paths "$WS/src" --ignore-src --rosdistro "$ROS_DISTRO" -y \
         --skip-keys "catkin python3-future cmake_modules rosconsole roscpp rostest coord2b"
 
@@ -139,7 +221,6 @@ else
     [ -e "$VENV/bin/activate" ] || die "run scripts/setup once before --build"
 fi
 
-source_file "/opt/ros/$ROS_DISTRO/setup.bash"
 source_file "$VENV/bin/activate"
 install_python_packages
 
@@ -150,7 +231,11 @@ if [ "$CONTEXT" = mujoco ]; then
 fi
 
 cd "$WS"
-colcon build
+if [ "$CONTEXT" = isaacsim-bt ]; then
+    colcon build --packages-up-to robbdd_tutorials bdd_bt_executor_ros2
+else
+    colcon build
+fi
 
 write_environment bash Bash BASH_VERSION
 write_environment zsh zsh ZSH_VERSION
