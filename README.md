@@ -11,66 +11,58 @@ under test:
   implementation.
 - `models/pick_place/mujoco_motion_spec` contains the first
   execution setup, including its BDDX, using motion-spec and MuJoCo.
-- A BehaviorTree.CPP and Isaac Sim setup is planned but not runnable yet.
+- `bdd_bt_executor_ros2` provides a BehaviorTree.CPP/MoveIt smoke test
+  in Isaac Sim; the full pick/place tutorial is still under development.
 
 The published
 [tutorials for automated Testing with RobBDD](https://minhnh.github.io/bdd-dsl/at-tutorial-scenarios.html)
-contains the requirements and walks through the common models.
+contain the requirements and walks through the common models.
 
-## Create the workspace
+## Contents
 
-Common dependencies:
+<!-- mtoc-start -->
 
-- [ROS 2 Jazzy on Ubuntu 24.04](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html)
-- [Git LFS](https://git-lfs.com/) for pulling binary resources
-- [vcs2l](https://github.com/ros-infrastructure/vcs2l#how-to-install-vcs2l)
-  provides the `vcs` command used by the setup script.
-- [`python3-colcon-common-extensions`](https://colcon.readthedocs.io/en/released/user/installation.html#quick-directory-changes)
-  provides `/usr/share/colcon_cd/function/colcon_cd.sh` for the generated environment scripts.
-- (optional) [uv](https://docs.astral.sh/uv/getting-started/installation/) for managing Python
-  virtual environments. Setup uses `uv` when it is already available, otherwise the
-  virtual environment's `python -m pip`.
+1. [Setting up the workspace](#setting-up-the-workspace)
+    1. [Quick Start](#quick-start)
+    1. [Dependencies](#dependencies)
+    1. [Setup script](#setup-script)
+        1. [`motion-spec` in MuJoCo](#motion-spec-in-mujoco)
+        1. [`BehaviorTree.CPP` & MoveIt in Isaac Sim](#behaviortreecpp--moveit-in-isaac-sim)
+1. [Test Execution](#test-execution)
+    1. [With `motion-spec` in MuJoCo](#with-motion-spec-in-mujoco)
+    1. [With MoveIt and `BehaviorTree.CPP` in Isaac Sim](#with-moveit-and-behaviortreecpp-in-isaac-sim)
 
-`motion-spec` dependencies:
+<!-- mtoc-end -->
 
-- [Ant](https://ant.apache.org/manual/install.html)
+## Setting up the workspace
 
-After configuring the ROS apt repository above, install these together:
+### Quick Start
 
-```bash
-sudo apt update
-sudo apt install git git-lfs python3-vcs2l python3-colcon-common-extensions
-git lfs install
-# Optional: motion-spec setup
-# sudo apt install ant
-sudo rosdep init  # once per machine; skip if already initialized
-```
+Clone this repository as a ROS package under `src` and run its setup script:
 
-Then clone this repository as a ROS package under `src` and run its setup script:
-
-```bash
+```sh
 mkdir -p ~/ros_bdd_ws/src
 git clone https://github.com/minhnh/robbdd_tutorials.git \
   ~/ros_bdd_ws/src/robbdd_tutorials
 cd ~/ros_bdd_ws/src/robbdd_tutorials
-./scripts/setup mujoco jazzy
+export ROS_DIST=jazzy
 ```
 
-The setup uses `vcs2l` to clone repositories in `repos/*.repos` files.
-There are separate files for [common repositories](./repos/common.repos),
-execution setup with [`motion-spec` - MuJoCo](./repos/mujoco.repos),
-and with [`BehaviorTree.CPP` - Isaac Sim](./repos/isaacsim-bt.repos) (WIP).
-This clones editable Python sources under `~/ros_bdd_ws/pydeps` and ROS packages
-under `~/ros_bdd_ws/src`.
+For execution in MuJoCo with `motion-spec`:
 
-The setup script also creates a Python vitual environment `~/ros_bdd_ws/.venv`
-for installing Python dependencies.
-The setup manifest clones STST and the compiled motion dependencies under
-`~/ros_bdd_ws/src`; `motion-spec setup` builds them into `~/ros_bdd_ws/install`.
+```sh
+./scripts/setup mujoco "$ROS_DIST"
+```
+
+For execution in Isaac Sim with MoveIt and `BehaviorTree.CPP`:
+
+```sh
+./scripts/setup isaacsim-bt "$ROS_DIST"
+```
 
 Source the generated file matching the current shell:
 
-```bash
+```sh
 source ~/ros_bdd_ws/setup-robbdd-tutorials.bash   # bash
 # source ~/ros_bdd_ws/setup-robbdd-tutorials.zsh  # zsh
 ```
@@ -78,14 +70,110 @@ source ~/ros_bdd_ws/setup-robbdd-tutorials.bash   # bash
 The sourced environment loads `colcon_cd` and aliases it as `roscd`, so
 `roscd robbdd_tutorials` jumps to this package. It also provides two maintenance commands:
 
-```bash
-bdd_tutorial pull   # call vcs pull on all *.repos
-bdd_tutorial build  # install
+```sh
+bdd_tutorial pull   # update tutorial dependencies; fetch the NVIDIA checkout
+bdd_tutorial build  # reinstall local Python packages and rebuild
 ```
+
+### Dependencies
+
+Common dependencies:
+
+- **Required:** [ROS 2 Jazzy on Ubuntu 24.04](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html),
+  with its apt repository configured before setup.
+- **Required:** Git to clone repositories and Git LFS to fetch binary resources.
+- **Required:** [vcs2l](https://github.com/ros-infrastructure/vcs2l) (`python3-vcs2l`)
+  for managing repositories in `repos/*.repos` files.
+- **Required:** `python3-colcon-common-extensions` to build ROS packages and provide `colcon_cd`.
+- **Required:** `python3-rosdep` to install ROS package dependencies; initialize it once with `sudo rosdep init`.
+- **Required:** `build-essential`, CMake, and `python3-venv` for compilation and the Python environment.
+- **Optional:** [uv](https://docs.astral.sh/uv/) for Python package installation. Setup uses it when available, otherwise pip.
+
+Execution-context dependencies:
+
+- **MuJoCo only:** [Ant](https://ant.apache.org/) for the `motion-spec` setup.
+- **Isaac Sim only:** Isaac Sim, installed separately. Setup builds matching
+  [Isaac Sim ROS workspace](https://github.com/isaac-sim/IsaacSim-ros_workspaces)
+  but does not install the simulator.
+
+### Setup script
+
+- Setup offers to install common prerequisites, adding Ant only for MuJoCo.
+- It prints the exact `sudo apt install` command and asks before running it.
+- Declining leaves prerequisite checks enabled.
+- Noninteractive setup skips the prompt; use `--install-system-packages` to opt in.
+- `--build` never installs system packages or prompts.
+
+To install prerequisites manually after configuring the ROS apt repository:
+
+```sh
+sudo apt install git git-lfs build-essential cmake python3-vcs2l \
+  python3-colcon-common-extensions python3-rosdep python3-venv
+sudo apt install ant  # MuJoCo only
+sudo rosdep init      # once per machine; skip if already initialized
+```
+
+The setup script:
+
+- Uses `rosdep` for the selected packages’ ROS dependencies afterward;
+  `rosdep install` may also request sudo authentication.
+- Uses `vcs2l` to clone repositories in `repos/*.repos` files.
+  There are separate files for [common repositories](./repos/common.repos),
+  execution setup with [`motion-spec` - MuJoCo](./repos/mujoco.repos),
+  and with [`BehaviorTree.CPP` - Isaac Sim](./repos/isaacsim-bt.repos).
+  This clones editable Python sources under `~/ros_bdd_ws/pydeps` and ROS packages
+  under `~/ros_bdd_ws/src`.
+- Creates `~/ros_bdd_ws/.venv` with access to system Python packages, including ROS.
+- Installs common Python requirements and local projects in editable mode,
+  using uv when available and pip otherwise.
+- Writes `setup-robbdd-tutorials.bash` and `setup-robbdd-tutorials.zsh` after the build.
+
+#### `motion-spec` in MuJoCo
+
+- Imports [the MuJoCo manifest](./repos/mujoco.repos) alongside the common repositories.
+- Clones `rec`, `motion-spec-dsl`, and `motion-spec` into `~/ros_bdd_ws/pydeps`
+  and installs them in editable mode in the workspace virtual environment.
+- Clones STSTv4, `orocos_kinematics_dynamics`, `coord2b`, and `mj_kdl_wrapper`
+  under `~/ros_bdd_ws/src`.
+- Invokes the motion-spec setup to build the compiled motion dependencies into
+  `~/ros_bdd_ws/install`, with ROS support:
+  ```sh
+  motion-spec setup STSTv4 orocos_kinematics_dynamics coord2b mj_kdl_wrapper \
+    --workspace ~/ros_bdd_ws --ros
+  ```
+- Sources the resulting install environment, then runs `colcon build` for the workspace.
+- The generated environment activates the virtual environment, sources ROS and
+  the workspace install, and configures motion-spec's workspace, generated-output,
+  and install paths. Source it before running the commands in [Test Execution](#test-execution).
+- `bdd_tutorial build` reinstalls the editable Python projects and repeats the
+  motion-spec and colcon builds, without cloning repositories or installing system packages.
+
+#### `BehaviorTree.CPP` & MoveIt in Isaac Sim
+
+- Clones [the temporary Isaac workspace fork](https://github.com/minhnh/IsaacSim-ros_workspaces)
+  beside the tutorial workspace, into `../IsaacSim-ros_workspaces`.
+- Always uses the fork's `fix/jazzy-asyncio-sleep` branch; setup currently has no
+  Isaac Sim version argument or tag selection.
+- The branch fixes the gripper callback's `no running event loop` error reported
+  in [upstream issue #27](https://github.com/isaac-sim/IsaacSim-ros_workspaces/issues/27).
+  The fix uses a ROS timer/future so joint-command publishing continues during the wait.
+- Builds the MoveIt dependency closure in `${ROS_DIST}_ws` (`jazzy_ws` in the example);
+  the generated environment
+  sources this underlay before the tutorial workspace.
+- Override the selected ROS workspace with
+  `ROBBDD_ISAAC_ROS_WS=/absolute/path/IsaacSim-ros_workspaces/${ROS_DIST}_ws`.
+- Initial setup requires a clean checkout on `fix/jazzy-asyncio-sleep`.
+  Setup does not switch or overwrite it.
+- `--build` allows local edits on that branch, so the rebuild uses your current sources.
+- Initializes only the selected distribution's MoveIt resource and topic-based
+  control submodules.
+- `bdd_tutorial build` preserves the context and underlay location.
+- `bdd_tutorial pull` fetches the fork without switching or advancing the fix
+  branch; update the checkout explicitly when adopting newer fixes.
 
 ## Test Execution
 
-### 1. `motion-spec` in MuJoCo
+### With `motion-spec` in MuJoCo
 
 1. Start test web visualization:
    ```sh
@@ -105,16 +193,14 @@ bdd_tutorial build  # install
    ros2 topic pub --once /bdd/start std_msgs/msg/Empty '{}'
    ```
 
-The motion-spec process owns the simulator and waits for a
-`bdd_ros2_interfaces/action/Behaviour` goal. The YAML launch starts only the
-BDD coordinator. The model provides the behavior action server, BDD boundary events, and
-direct scene-pose observations used by the coordinator.
+Execution and validation:
 
-Before introducing sampled placements, the MuJoCo nominal run produced a complete
-verdict but reported `object-at-place` as false: the released cube remained about
-0.47 m from the bin observation point. Placement behavior still needs validation
-after the execution blockers above are resolved.
+- The motion-spec process owns the simulator and waits for a
+  `bdd_ros2_interfaces/action/Behaviour` goal.
+- The YAML launch starts the BDD coordinator.
+- The model provides the Behaviour action server, BDD boundary events, and direct
+  scene-pose observations used by the coordinator.
 
-### 2. `BehaviorTree.CPP` in Isaac Sim
+### With MoveIt and `BehaviorTree.CPP` in Isaac Sim
 
 TODO(minhnh)

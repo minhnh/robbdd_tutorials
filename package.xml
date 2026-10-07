@@ -8,6 +8,9 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
+  <exec_depend>bdd_bt_executor_ros2</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
 
   <exec_depend>bdd_exec_ros2</exec_depend>
   <exec_depend>bdd_ros2_interfaces</exec_depend>
