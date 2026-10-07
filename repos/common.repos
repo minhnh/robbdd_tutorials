@@ -26,5 +26,4 @@ repositories:
   pydeps/rdf-utils:
     type: git
     url: https://github.com/minhnh/rdf-utils.git
-    # v1.0.0 lacks vocabulary constants required by scene-dsl v1.0.0.
-    version: main
+    version: v1.0.1
