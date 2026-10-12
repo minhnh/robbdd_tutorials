@@ -71,8 +71,8 @@ The sourced environment loads `colcon_cd` and aliases it as `roscd`, so
 `roscd robbdd_tutorials` jumps to this package. It also provides two maintenance commands:
 
 ```sh
-bdd_tutorial pull   # update tutorial dependencies; fetch the NVIDIA checkout
-bdd_tutorial build  # reinstall local Python packages and rebuild
+bdd_ws pull   # update tutorial dependencies; fetch the NVIDIA checkout
+bdd_ws build  # reinstall local Python packages and rebuild
 ```
 
 ### Dependencies
@@ -115,7 +115,7 @@ sudo rosdep init      # once per machine; skip if already initialized
 
 The setup script:
 
-- Uses `rosdep` for the selected packages’ ROS dependencies afterward;
+- Uses `rosdep` for the selected packages' ROS dependencies afterward;
   `rosdep install` may also request sudo authentication.
 - Uses `vcs2l` to clone repositories in `repos/*.repos` files.
   There are separate files for [common repositories](./repos/common.repos),
@@ -145,7 +145,7 @@ The setup script:
 - The generated environment activates the virtual environment, sources ROS and
   the workspace install, and configures motion-spec's workspace, generated-output,
   and install paths. Source it before running the commands in [Test Execution](#test-execution).
-- `bdd_tutorial build` reinstalls the editable Python projects and repeats the
+- `bdd_ws build` reinstalls the editable Python projects and repeats the
   motion-spec and colcon builds, without cloning repositories or installing system packages.
 
 #### `BehaviorTree.CPP` & MoveIt in Isaac Sim
@@ -167,8 +167,11 @@ The setup script:
 - `--build` allows local edits on that branch, so the rebuild uses your current sources.
 - Initializes only the selected distribution's MoveIt resource and topic-based
   control submodules.
-- `bdd_tutorial build` preserves the context and underlay location.
-- `bdd_tutorial pull` fetches the fork without switching or advancing the fix
+- Setup and `bdd_ws build` explicitly pull the Panda world USD through Git LFS
+  before installing `bdd_exec_ros2`, so the simulator receives the asset rather
+  than an LFS text pointer.
+- `bdd_ws build` preserves the context and underlay location.
+- `bdd_ws pull` fetches the fork without switching or advancing the fix
   branch; update the checkout explicitly when adopting newer fixes.
 
 ## Test Execution
@@ -203,4 +206,100 @@ Execution and validation:
 
 ### With MoveIt and `BehaviorTree.CPP` in Isaac Sim
 
-TODO(minhnh)
+The tutorial currently validates scene preparation and URI-based pose selection.
+Full pick/place execution is still under development. It uses the standard
+`bdd_bt_executor_ros2` server; the only tutorial C++ is one tree-wiring test.
+
+- [config/isaac_pick_place.yaml](config/isaac_pick_place.yaml): simulator IDs,
+  collision geometry, and variable-to-role bindings.
+- [launch/isaac_prepare.launch.yaml](launch/isaac_prepare.launch.yaml): frames,
+  service endpoints, timeout, and the expected Panda URI, supplied as `tree_inputs`.
+- [behavior_trees/isaac_prepare.xml](behavior_trees/isaac_prepare.xml): resolves
+  the goal, collects poses, computes offset targets, and applies the collision scene.
+  Its default `InspectResolvedObject` tree removes the selected collision object
+  for 10 seconds, reports its URI in feedback, then restores the scene.
+- Generic node APIs are documented in the executor's
+  [BT node reference](https://github.com/minhnh/bdd_bt_executor_ros2/blob/main/docs/bt_nodes.md).
+
+The SceneX model uses one Panda agent for arm and gripper, the table from the
+Panda world, and a spawned KLT bin. It includes all four pickable objects:
+
+| Object | Isaac asset | Prim path |
+| --- | --- | --- |
+| Cube | Dex cube | `/spawned/cube` |
+| Can | YCB tomato soup can | `/spawned/can` |
+| Cereal box | YCB cracker box | `/spawned/cereal_box` |
+| Bottle | YCB mustard bottle | `/spawned/bottle` |
+
+MuJoCo uses robosuite's Hy-Vee cereal box; its semantic identity matches the Isaac
+cracker box, but meshes and dimensions differ. Preparation includes all six
+catalogue entities as obstacles; the robot uses MoveIt's robot model.
+
+Offline checks, after sourcing the workspace:
+
+```sh
+bdd_ws build
+colcon test --packages-select robbdd_tutorials --ctest-args -R test_isaac_bt --return-code-on-test-failure
+python3 src/robbdd_tutorials/scripts/test_setup.py
+```
+
+The C++ smoke test checks the shipped tree's URI -> pose -> offset -> scene-update
+wiring. Generic node behavior is tested in the executor. The `.clang-format` and
+pre-commit hook remain for this test.
+
+To validate against live Isaac Sim, source the workspace in every terminal:
+
+1. Build and load the scene with the ROS bridge and simulation interfaces enabled:
+   ```sh
+   bdd_ws build
+   source setup-robbdd-tutorials.bash  # use .zsh for zsh
+   TUTORIAL_SHARE="$(ros2 pkg prefix --share robbdd_tutorials)"
+   ros2 run bdd_exec_ros2 sim_interface_test load-scene \
+     --scene-model "$TUTORIAL_SHARE/models/pick_place/isaacsim/pick_place_single.scenex"
+   ```
+   The build pulls the Panda world through Git LFS. Loading resets the world and
+   spawns the configured objects; keep simulation playing afterward.
+2. Start MoveIt in another terminal, with RViz for visual inspection:
+   ```sh
+   LC_NUMERIC=en_US.UTF-8 ros2 launch robbdd_tutorials isaac_moveit.launch.xml start_rviz:=true
+   ```
+   RViz otherwise defaults to off. This launch matches the supplied Panda base at
+   `(0, -0.64, 0)` m with +90-degree yaw (`robot_base_yaw` is configurable).
+   Stop any previous MoveIt launch first to avoid duplicate controllers and TF publishers.
+3. Start the preparation server:
+   ```sh
+   ros2 launch robbdd_tutorials isaac_prepare.launch.yaml
+   ```
+   Override `config_file` for different prim paths/geometry. Frames, service
+   endpoints, and `timeout` are launch arguments; list them with `--show-args`.
+4. Send the sample goal from another terminal:
+   ```sh
+   ros2 action send_goal /bdd/prepare bdd_ros2_interfaces/action/Behaviour \
+     "$(cat "$(ros2 pkg prefix --share robbdd_tutorials)/config/isaac_prepare_goal.yaml")" \
+     --feedback
+   ```
+   Expect `SUCCEEDED` and `TRUE`. In RViz, only the resolved object should disappear
+   during the 10-second pause and return afterward. To test the bottle, change only
+   the target object's `param_val_uris` to its catalogue URI; keep `variable_uri` unchanged.
+
+Validation limits and calibration:
+
+- The default tree makes no arm/gripper requests and leaves Isaac objects in place.
+  If interrupted after removal, submit the goal again to rebuild the collision scene.
+  Restoration uses the poses captured at the start.
+- The tree uses `override_frame_id="world"` because the tested Isaac service returns
+  world coordinates labelled with entity names. Confirm that convention for your
+  scene; otherwise preserve the headers and provide TF to `target_frame`.
+  Stamp zero requests the latest TF and does not establish pose freshness.
+- Check collision sizes and entity-local shape offsets against RViz. The table
+  geometry uses a measured tabletop height of 0.7696 m above the legs origin.
+- XML offsets retain the nominal cube grasp: absolute quaternion `[1,0,0,0]`,
+  local tool offset `[0,0,-0.1]` m, 0.1 m reference-frame Z clearance, and 0.08 m
+  bin-local release height. Other objects need grasp calibration before motion.
+- For a calibrated target, the executor plans and executes through MoveIt:
+  ```xml
+  <MoveGroupAction group="panda_arm" target_pose="{approach_pose}" link_name="panda_hand"/>
+  ```
+  Pose targets use MoveIt's current collision scene. They do not require an SRDF
+  on the executor; named targets do. Attachment/detachment update MoveIt's collision
+  model, not the physical simulator grasp.

@@ -142,12 +142,18 @@ if name == 'colcon' and args[0] == 'list':
         builds = [(args, cwd) for name, args, cwd in calls if name == "colcon" and args[0] == "build"]
         assert [cwd for args, cwd in builds] == [str(ros_ws), str(ws)], builds
         assert builds[0][0] == ["build", "--base-paths", "src/moveit", "--packages-up-to", "isaac_moveit"]
-        assert builds[1][0] == ["build", "--packages-up-to", "robbdd_tutorials", "bdd_bt_executor_ros2"]
+        assert builds[1][0] == ["build", "--packages-up-to", "robbdd_tutorials", "bdd_bt_executor_ros2", "--cmake-args", "-DROBBDD_BUILD_ISAAC_BT=ON"]
+        assert [args for name, args, cwd in calls if name == "git" and "lfs" in args] == [
+            ["-C", str(ws / "src/bdd_exec_ros2"), "lfs", "pull", "--include=models/panda_moveit.usd"]
+        ]
         submodules = [args for name, args, cwd in calls if name == "git" and "submodule" in args]
         assert len(submodules) == 1 and all("humble" not in arg for arg in submodules[0])
         for ext in ("bash", "zsh"):
             generated = (ws / f"setup-robbdd-tutorials.{ext}").read_text()
             assert generated.index(str(ros_ws / "install")) < generated.index(str(ws / "install"))
+            assert "bdd_ws()" in generated and "$BDD_WS" in generated
+            assert f"export BDD_WS='{repo}/scripts/bdd_ws'" in generated
+            assert "bdd_tutorial()" not in generated and "/scripts/bdd_tutorial'" not in generated
             assert "ROBBDD_ISAACSIM_VERSION" not in generated
             assert f"export ROBBDD_ISAAC_ROS_WS='{ros_ws}'" in generated
 
@@ -194,11 +200,11 @@ if name == 'colcon' and args[0] == 'list':
                   "ROBBDD_TUTORIAL_CONTEXT": "isaacsim-bt",
                   "ROS_DISTRO": "jazzy"}
     log.write_text("")
-    subprocess.run([str(repo / "scripts/bdd_tutorial"), "build"], env=helper_env, check=True)
+    subprocess.run([str(repo / "scripts/bdd_ws"), "build"], env=helper_env, check=True)
     calls = [json.loads(line) for line in log.read_text().splitlines()]
     assert calls[-1][1] == ["--build", "isaacsim-bt", "jazzy"], calls
     log.write_text("")
-    subprocess.run([str(repo / "scripts/bdd_tutorial"), "pull"], env=helper_env, check=True)
+    subprocess.run([str(repo / "scripts/bdd_ws"), "pull"], env=helper_env, check=True)
     calls = [json.loads(line) for line in log.read_text().splitlines()]
     assert calls[-1][:2] == ["git", ["-C", str(nvidia), "fetch", "https://github.com/minhnh/IsaacSim-ros_workspaces.git"]], calls
 print("PASS: setup prompts, sibling underlay, build order, branch checks, and helper persistence")

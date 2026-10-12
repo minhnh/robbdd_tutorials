@@ -1,0 +1,44 @@
+<root BTCPP_format="4" main_tree_to_execute="InspectResolvedObject">
+  <BehaviorTree ID="Prepare">
+    <Sequence>
+      <ResolveBehaviourParameters config_file="{config_file}" uri_bindings="{uri_bindings}"/>
+      <ScriptCondition code="robot_uri == expected_robot_uri"/>
+      <ClearPlanningSceneForUris config_file="{config_file}" service_name="{planning_scene_query}" timeout="{timeout}" scene="{clear_scene}"/>
+      <ApplyPlanningScene scene="{clear_scene}" service_name="{planning_scene_service}" timeout="{timeout}"/>
+      <GetEntityPoses config_file="{config_file}" target_frame="{target_frame}"
+                       world_frame="{world_frame}" override_frame_id="world" service_namespace="{simulation_namespace}"
+                       timeout="{timeout}" poses="{poses}"/>
+      <BuildPlanningScene config_file="{config_file}" poses="{poses}" scene="{world_scene}"/>
+      <SelectEntityPose poses="{poses}" object_uri="{object_uri}" pose="{object_world}"/>
+      <SelectEntityPose poses="{poses}" object_uri="{pick_workspace_uri}" pose="{pick_workspace_world}"/>
+      <SelectEntityPose poses="{poses}" object_uri="{place_workspace_uri}" pose="{place_workspace_world}"/>
+      <!-- Nominal cube grasp: absolute tool orientation, then a tool-local offset. -->
+      <OffsetPose pose="{object_world}" orientation="1;0;0;0" position_offset="0;0;-0.1"
+                  target_pose="{grasp_pose}"/>
+      <OffsetPose pose="{grasp_pose}" position_offset="0;0;0.1" offset_frame="reference"
+                  target_pose="{approach_pose}"/>
+      <SetBlackboard value="{approach_pose}" output_key="lift_pose"/>
+      <OffsetPose pose="{place_workspace_world}" position_offset="0;0;0.08"
+                  target_pose="{release_point}"/>
+      <OffsetPose pose="{release_point}" orientation="1;0;0;0" position_offset="0;0;-0.1"
+                  target_pose="{release_pose}"/>
+      <OffsetPose pose="{release_pose}" position_offset="0;0;0.1" offset_frame="reference"
+                  target_pose="{transfer_pose}"/>
+      <SetBlackboard value="{transfer_pose}" output_key="retreat_pose"/>
+      <ApplyPlanningScene scene="{world_scene}" service_name="{planning_scene_service}" timeout="{timeout}"/>
+    </Sequence>
+  </BehaviorTree>
+  <BehaviorTree ID="InspectResolvedObject">
+    <Sequence>
+      <SubTree ID="Prepare" _autoremap="true"/>
+      <ClearPlanningSceneForUris config_file="{config_file}" uris="{object_uri}"
+                                service_name="{planning_scene_query}"
+                                timeout="{timeout}" scene="{selected_cleanup}"/>
+      <ApplyPlanningScene scene="{selected_cleanup}" service_name="{planning_scene_service}"
+                          timeout="{timeout}"/>
+      <MockTimedAction duration="10" heartbeat_duration="1" message="{object_uri}"/>
+      <ApplyPlanningScene scene="{world_scene}" service_name="{planning_scene_service}"
+                          timeout="{timeout}"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

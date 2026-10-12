@@ -7,7 +7,7 @@ WS="${ROBBDD_TUTORIAL_WS:-$(cd -- "$REPO_DIR/../.." && pwd -P)}"
 
 usage() {
     cat <<'EOF'
-Usage: bdd_tutorial <command>
+Usage: bdd_ws <command>
 
   pull    Pull src/ and pydeps/; fetch the Isaac fork without changing its fix branch.
   build   Reinstall local Python packages and rebuild the ROS workspace.
@@ -33,5 +33,5 @@ case "${1:-}" in
         printf '%s/setup-robbdd-tutorials.%s\n' "$WS" "$ext"
         ;;
     -h|--help|help|'') usage ;;
-    *) printf 'bdd_tutorial: unknown command: %s\n\n' "$1" >&2; usage >&2; exit 2 ;;
+    *) printf 'bdd_ws: unknown command: %s\n\n' "$1" >&2; usage >&2; exit 2 ;;
 esac

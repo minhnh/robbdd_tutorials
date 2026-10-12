@@ -1,0 +1,15 @@
+import "../common/pick_place_single.scene"
+
+ns isaac_agn = "https://secorolab.github.io/models/agents/isaac-sim/"
+ns isaac_scene = "https://secorolab.github.io/models/scenes/pick-place-single-isaac/"
+
+// Panda includes its arm and gripper as one agent.
+agn set (ns=isaac_agn) panda_agents {
+    agent panda
+}
+
+scene (ns=isaac_scene) pick_place_panda_scene {
+    obj set <pickplace_objects>
+    ws comp <table-composition>
+    agn set <panda_agents>
+}

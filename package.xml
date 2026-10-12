@@ -8,7 +8,17 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
-  <exec_depend>bdd_bt_executor_ros2</exec_depend>
+  <exec_depend condition="$ROBBDD_TUTORIAL_CONTEXT == 'isaacsim-bt'">bdd_bt_executor_ros2</exec_depend>
+  <test_depend condition="$ROBBDD_TUTORIAL_CONTEXT == 'isaacsim-bt'">bdd_bt_executor_ros2</test_depend>
+  <exec_depend condition="$ROBBDD_TUTORIAL_CONTEXT == 'isaacsim-bt'">launch_xml</exec_depend>
+  <exec_depend condition="$ROBBDD_TUTORIAL_CONTEXT == 'isaacsim-bt'">isaac_moveit</exec_depend>
+  <exec_depend condition="$ROBBDD_TUTORIAL_CONTEXT == 'isaacsim-bt'">moveit_resources_panda_moveit_config</exec_depend>
+  <exec_depend condition="$ROBBDD_TUTORIAL_CONTEXT == 'isaacsim-bt'">moveit_ros_move_group</exec_depend>
+  <exec_depend condition="$ROBBDD_TUTORIAL_CONTEXT == 'isaacsim-bt'">robot_state_publisher</exec_depend>
+  <exec_depend condition="$ROBBDD_TUTORIAL_CONTEXT == 'isaacsim-bt'">controller_manager</exec_depend>
+  <exec_depend condition="$ROBBDD_TUTORIAL_CONTEXT == 'isaacsim-bt'">rviz2</exec_depend>
+  <exec_depend condition="$ROBBDD_TUTORIAL_CONTEXT == 'isaacsim-bt'">xacro</exec_depend>
+  <test_depend condition="$ROBBDD_TUTORIAL_CONTEXT == 'isaacsim-bt'">ament_cmake_gtest</test_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
 

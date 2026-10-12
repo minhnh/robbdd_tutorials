@@ -35,6 +35,7 @@ case "${1:-}" in -h) usage; exit 0 ;; esac
 
 CONTEXT="${1:-mujoco}"
 ROS_DISTRO="${2:-${ROS_DISTRO:-jazzy}}"
+export ROBBDD_TUTORIAL_CONTEXT="$CONTEXT"
 case "$CONTEXT" in mujoco|isaacsim-bt) ;; *) die "unknown context: $CONTEXT" ;; esac
 [[ "$ROS_DISTRO" =~ ^[a-z]+$ ]] || die "invalid ROS distribution: $ROS_DISTRO"
 [ "$REPO_DIR" = "$WS/src/robbdd_tutorials" ] \
@@ -177,7 +178,7 @@ alias roscd=colcon_cd
 export ROBBDD_TUTORIAL_WS='$WS'
 export ROBBDD_TUTORIAL_CONTEXT='$CONTEXT'
 export ROBBDD_ISAAC_ROS_WS='$ISAAC_ROS_WS'
-export BDD_TUTORIAL='$SCRIPT_DIR/bdd_tutorial'
+export BDD_WS='$SCRIPT_DIR/bdd_ws'
 export MOTION_SPEC_WS='$WS'
 export MOTION_SPEC_GEN='$WS/generations'
 export MOTION_SPEC_ENV='$file'
@@ -186,7 +187,7 @@ case ":\${PATH:-}:" in
     *":\$MOTION_SPEC_PREFIX/bin:"*) ;;
     *) export PATH="\$MOTION_SPEC_PREFIX/bin\${PATH:+:\$PATH}" ;;
 esac
-bdd_tutorial() { "\$BDD_TUTORIAL" "\$@"; }
+bdd_ws() { "\$BDD_WS" "\$@"; }
 printf 'RobBDD tutorial environment ready: %s\\n' '$WS'
 unset _robbdd_tutorial_had_nounset
 EOF
@@ -220,6 +221,10 @@ else
     [ -e "$VENV/bin/activate" ] || die "run scripts/setup once before --build"
 fi
 
+if [ "$CONTEXT" = isaacsim-bt ]; then
+    git -C "$WS/src/bdd_exec_ros2" lfs pull --include=models/panda_moveit.usd
+fi
+
 source_file "$VENV/bin/activate"
 install_python_packages
 
@@ -231,9 +236,10 @@ fi
 
 cd "$WS"
 if [ "$CONTEXT" = isaacsim-bt ]; then
-    colcon build --packages-up-to robbdd_tutorials bdd_bt_executor_ros2
+    colcon build --packages-up-to robbdd_tutorials bdd_bt_executor_ros2 \
+        --cmake-args -DROBBDD_BUILD_ISAAC_BT=ON
 else
-    colcon build
+    colcon build --cmake-args -DROBBDD_BUILD_ISAAC_BT=OFF
 fi
 
 write_environment bash Bash BASH_VERSION
