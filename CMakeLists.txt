@@ -21,7 +21,8 @@ if(ROBBDD_BUILD_ISAAC_BT AND BUILD_TESTING)
   ament_target_dependencies(test_isaac_bt bdd_bt_executor_ros2)
   target_compile_definitions(test_isaac_bt PRIVATE
     TUTORIAL_CONFIG="${CMAKE_CURRENT_SOURCE_DIR}/config/isaac_pick_place.yaml"
-    TUTORIAL_TREE="${CMAKE_CURRENT_SOURCE_DIR}/behavior_trees/isaac_prepare.xml")
+    TUTORIAL_PLAN_TREE="${CMAKE_CURRENT_SOURCE_DIR}/behavior_trees/isaac_plan_approach.xml"
+    TUTORIAL_MOTION_TREE="${CMAKE_CURRENT_SOURCE_DIR}/behavior_trees/isaac_pick_place.xml")
 endif()
 
 ament_package()

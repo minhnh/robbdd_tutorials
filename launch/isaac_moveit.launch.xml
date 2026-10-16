@@ -14,6 +14,9 @@
        description="Robot base yaw in the world frame, in radians"/>
 
   <arg name="start_rviz" default="false" description="Start RViz"/>
+  <arg name="arm_controller_config"
+       default="$(find-pkg-share robbdd_tutorials)/config/isaac_arm_controller.yaml"
+       description="Arm controller parameter overrides"/>
 
   <let name="robot_description"
        value="$(command '$(find-exec xacro) &quot;$(find-pkg-share isaac_moveit)/config/panda_isaac.urdf.xacro&quot; ros2_control_hardware_type:=$(var ros2_control_hardware_type)')"/>
@@ -45,6 +48,8 @@
     <param name="robot_description" value="$(var robot_description)" type="str"/>
     <param name="robot_description_semantic" value="$(var robot_description_semantic)" type="str"/>
     <param from="$(find-pkg-share isaac_moveit)/config/move_group.yaml"/>
+    <!-- Allow the controller's 2-second settling window plus result delivery. -->
+    <param name="trajectory_execution.allowed_goal_duration_margin" value="3.0" type="float"/>
     <param name="use_sim_time" value="$(var use_sim_time)" type="bool"/>
   </node>
 
@@ -56,7 +61,7 @@
   <node pkg="controller_manager" exec="spawner"
         args="joint_state_broadcaster --controller-manager /controller_manager"/>
   <node pkg="controller_manager" exec="spawner"
-        args="panda_arm_controller -c /controller_manager"/>
+        args="panda_arm_controller -c /controller_manager --param-file $(find-pkg-share moveit_resources_panda_moveit_config)/config/ros2_controllers.yaml --param-file $(var arm_controller_config)"/>
   <node pkg="isaac_moveit" exec="gripper_to_isaac" name="gripper_to_isaac" output="screen">
     <param name="use_sim_time" value="$(var use_sim_time)" type="bool"/>
   </node>

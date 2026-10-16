@@ -17,17 +17,17 @@
       <SelectEntityPose poses="{poses}" object_uri="{place_workspace_uri}" pose="{place_workspace_world}"/>
       <!-- Nominal cube grasp: absolute tool orientation, then a tool-local offset. -->
       <OffsetPose pose="{object_world}" orientation="1;0;0;0" position_offset="0;0;-0.1"
-                  target_pose="{grasp_pose}"/>
-      <OffsetPose pose="{grasp_pose}" position_offset="0;0;0.1" offset_frame="reference"
-                  target_pose="{approach_pose}"/>
-      <SetBlackboard value="{approach_pose}" output_key="lift_pose"/>
+                  target_pose="{pick_pose}"/>
+      <OffsetPose pose="{pick_pose}" position_offset="{pick_clearance}" offset_frame="reference"
+                  target_pose="{pre_pick_pose}"/>
+      <SetBlackboard value="{pre_pick_pose}" output_key="post_pick_pose"/>
       <OffsetPose pose="{place_workspace_world}" position_offset="0;0;0.08"
                   target_pose="{release_point}"/>
       <OffsetPose pose="{release_point}" orientation="1;0;0;0" position_offset="0;0;-0.1"
-                  target_pose="{release_pose}"/>
-      <OffsetPose pose="{release_pose}" position_offset="0;0;0.1" offset_frame="reference"
-                  target_pose="{transfer_pose}"/>
-      <SetBlackboard value="{transfer_pose}" output_key="retreat_pose"/>
+                  target_pose="{place_pose}"/>
+      <OffsetPose pose="{place_pose}" position_offset="{place_clearance}" offset_frame="reference"
+                  target_pose="{pre_place_pose}"/>
+      <SetBlackboard value="{pre_place_pose}" output_key="post_place_pose"/>
       <ApplyPlanningScene scene="{world_scene}" service_name="{planning_scene_service}" timeout="{timeout}"/>
     </Sequence>
   </BehaviorTree>

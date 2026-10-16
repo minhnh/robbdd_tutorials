@@ -1,5 +1,17 @@
 launch:
   - arg:
+      name: pick_clearance
+      default: "0;0;0.1"
+  - arg:
+      name: place_clearance
+      default: "0;0;0.2"
+  - arg:
+      name: gripper_action
+      default: /panda_hand_controller/gripper_cmd
+  - arg:
+      name: touch_links
+      default: "panda_hand;panda_leftfinger;panda_rightfinger"
+  - arg:
       name: readiness_timeout
       default: "30.0"
   - arg:
@@ -62,6 +74,10 @@ launch:
             joint_states_topic: "$(var joint_states_topic)"
             group: "$(var group)"
             end_effector_frame: "$(var end_effector_frame)"
+            pick_clearance: "$(var pick_clearance)"
+            place_clearance: "$(var place_clearance)"
+            gripper_action: "$(var gripper_action)"
+            touch_links: "$(var touch_links)"
             config_file: "$(var config_file)"
             target_frame: "$(var target_frame)"
             world_frame: "$(var world_frame)"

@@ -4,6 +4,7 @@
 #include <bdd_bt_executor_ros2/nodes/build_planning_scene.hpp>
 #include <bdd_bt_executor_ros2/nodes/planning_scene_objects.hpp>
 #include <bdd_bt_executor_ros2/nodes/mock_timed_action.hpp>
+#include <bdd_bt_executor_ros2/nodes/motion_actions.hpp>
 #include <bdd_bt_executor_ros2/nodes/wait_for_moveit_ready.hpp>
 #include <bdd_bt_executor_ros2/nodes/pose_operations.hpp>
 #include <bdd_bt_executor_ros2/nodes/resolve_behaviour_parameters.hpp>
@@ -76,10 +77,46 @@ TEST(IsaacTutorial, ShippedTreeRemovesAndRestoresSelectedObject)
           [](BT::TreeNode &) { return BT::NodeStatus::SUCCESS; },
           WaitForMoveItReady::providedPorts()
         );
-        factory.registerBehaviorTreeFromFile(TUTORIAL_TREE);
+        bool                     planned       = false;
+        bool                     planning_only = true;
+        std::vector<std::string> motion_steps;
+        factory.registerSimpleAction(
+          "MoveGroupAction",
+          [&](BT::TreeNode &action) {
+              EXPECT_EQ(action.getInput<bool>("plan_only").value(), planning_only);
+              motion_steps.push_back(std::string(action.getRawPortValue("target_pose")));
+              EXPECT_EQ(action.getInput<std::string>("group").value(), "panda_arm");
+              EXPECT_FALSE(action.getInput<geometry_msgs::msg::PoseStamped>("target_pose")
+                             .value()
+                             .header.frame_id.empty());
+              planned = true;
+              return BT::NodeStatus::SUCCESS;
+          },
+          MoveGroupAction::providedPorts()
+        );
+        factory.registerNodeType<AttachObjectByUri>("AttachObjectByUri");
+        factory.registerNodeType<DetachObjectByUri>("DetachObjectByUri");
+        factory.registerSimpleAction(
+          "GripperCommandAction",
+          [&](BT::TreeNode &action) {
+              motion_steps.push_back(
+                action.getInput<double>("position").value() == 0 ? "close" : "open"
+              );
+              return BT::NodeStatus::SUCCESS;
+          },
+          GripperCommandAction::providedPorts()
+        );
+        factory.registerBehaviorTreeFromFile(TUTORIAL_PLAN_TREE);
         auto bb = BT::Blackboard::create();
         for (const auto &[key, value] : std::map<std::string, std::string>{
                { "config_file", TUTORIAL_CONFIG },
+               { "group", "panda_arm" },
+               { "pick_clearance", "0;0;0.1" },
+               { "place_clearance", "0;0;0.2" },
+               { "end_effector_frame", "panda_hand" },
+               { "move_group_action", "/move_action" },
+               { "gripper_action", "/gripper_cmd" },
+               { "touch_links", "hand;leftfinger;rightfinger" },
                { "target_frame", "world" },
                { "world_frame", "world" },
                { "simulation_namespace", "/test_isaac_bt" },
@@ -127,6 +164,27 @@ TEST(IsaacTutorial, ShippedTreeRemovesAndRestoresSelectedObject)
         ASSERT_EQ(requests[3].world.collision_objects.size(), catalogue.size());
         EXPECT_EQ(requests[3].world.collision_objects.back().id, bottle.object.id);
         EXPECT_DOUBLE_EQ(requests[3].world.collision_objects.back().pose.position.x, 1.25);
+        tree = factory.createTree("PlanApproach", bb);
+        ASSERT_EQ(run(), BT::NodeStatus::SUCCESS);
+        EXPECT_TRUE(planned);
+        factory.clearRegisteredBehaviorTrees();
+        factory.registerBehaviorTreeFromFile(TUTORIAL_MOTION_TREE);
+        planning_only = false;
+        motion_steps.clear();
+        tree = factory.createTree("PickPlace", bb);
+        ASSERT_EQ(run(), BT::NodeStatus::SUCCESS);
+        EXPECT_EQ(
+          motion_steps,
+          (std::vector<std::string>{ "open",
+                                     "{pre_pick_pose}",
+                                     "{pick_pose}",
+                                     "close",
+                                     "{post_pick_pose}",
+                                     "{pre_place_pose}",
+                                     "{place_pose}",
+                                     "open",
+                                     "{post_place_pose}" })
+        );
     }
     rclcpp::shutdown();
 }

@@ -37,7 +37,7 @@ scene inst (ns=pps_isaac) pick_place_scene_isaac {
         }
         body cereal-box {
             frame center {
-                pose on_table { wrt: <table.surface> xyz: (0.15, -0.2, 0.15) m orientation: euler { angles: (0.0, 0.0, 0.0) } }
+                pose on_table { wrt: <table.surface> xyz: sample <object-position> m orientation: euler { angles: (0.0, 0.0, 0.0) } }
             }
         }
         body can {
@@ -52,7 +52,7 @@ scene inst (ns=pps_isaac) pick_place_scene_isaac {
         }
         body cube {
             frame center {
-                pose on_table { wrt: <table.surface> xyz: (0.1, -0.1, 0.1) m orientation: euler { angles: (0.0, 0.0, 0.0) } }
+                pose on_table { wrt: <table.surface> xyz: sample <object-position> m orientation: euler { angles: (0.0, 0.0, 0.0) } }
             }
         }
     }
