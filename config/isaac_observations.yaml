@@ -1,0 +1,14 @@
+/bdd/isaac_coordinator:
+  ros__parameters:
+    user_story: "https://secorolab.github.io/robbdd/tutorials/pick-place/isaac/isaac-pick-place-story"
+    event_topic: /bdd/events
+    bhv_server_name: /bdd/prepare
+    start_test_topic: /bdd/start
+    status_topic: /bdd/status
+    status_timer_period: 0.5
+    use_sim_time: true
+    timeout: 10.0
+    tf_max_age: 1.0
+    scene_setup_mode: simulation
+    simulation_service_namespace: /
+    world_entity_name: world

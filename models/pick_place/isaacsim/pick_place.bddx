@@ -1,0 +1,71 @@
+import "pick_place.bdd"
+import "../common/pick_place.bdd"
+import "../common/pick_place_single.scene"
+import "pick_place_single.scenex"
+
+ns isaac_exec = "https://secorolab.github.io/robbdd/tutorials/pick-place/isaac/execution/"
+
+// Stage 5 uses the preparation diagnostic; full motion/events are added in stage 6.
+bhv impl (ns=isaac_exec) preparation-server {
+    bhv action: "/bdd/prepare"
+}
+
+obs provider (ns=isaac_exec) entity-state {
+    ros simulation entity state
+    update-rate: 10 Hz
+}
+obs provider (ns=isaac_exec) robot-tf {
+    ros transform listener
+    reference-frame: "world"
+    update-rate: 10 Hz
+}
+
+observation (ns=isaac_exec) object-pose {
+    provider: <entity-state> observes var <pick-place-template.target-object>
+    time extractor: py { module: bdd_exec_ros2.observation, attr: latest_identified_pose_stamp }
+    entity mapper: py { module: bdd_exec_ros2.observation, attr: map_identified_entity_poses }
+}
+observation (ns=isaac_exec) place-workspace-pose {
+    provider: <entity-state> observes var <pick-place-template.place-workspace>
+    time extractor: py { module: bdd_exec_ros2.observation, attr: latest_identified_pose_stamp }
+    entity mapper: py { module: bdd_exec_ros2.observation, attr: map_identified_entity_poses }
+}
+// The supplied scene's fixed tabletop surface is at the world origin, not the legs.
+observation (ns=isaac_exec) pick-workspace-pose {
+    provider: <robot-tf> observes var <pick-place-template.pick-workspace>
+    time extractor: py { module: bdd_exec_ros2.observation, attr: header_stamp }
+    entity mapper: string { "world" to ws <pickplace_workspaces.table-ws> }
+}
+observation (ns=isaac_exec) grasp-pose {
+    provider: <robot-tf> observes var <pick-place-template.robot>
+    time extractor: py { module: bdd_exec_ros2.observation, attr: header_stamp }
+    entity mapper: string { "panda_hand" to agn <panda_agents.panda> }
+}
+
+obs policy (ns=isaac_exec) object-at-pick-policy
+    for <pick-place-template.object-at-pick>
+    horizon: 2.0 seconds
+{
+    observations: { <object-pose>, <pick-workspace-pose> }
+    evaluator: linear distance { less-than: 0.3 m max time offset: 0.1 s }
+}
+obs policy (ns=isaac_exec) object-held-policy
+    for <pick-place-template.object-held>
+{
+    observations: { <object-pose>, <grasp-pose> }
+    evaluator: linear distance { less-than: 0.12 m max time offset: 0.1 s }
+}
+obs policy (ns=isaac_exec) object-at-place-policy
+    for <pick-place-template.object-at-place>
+    horizon: 2.0 seconds
+{
+    observations: { <object-pose>, <place-workspace-pose> }
+    evaluator: py { module: robbdd_tutorials.observation_evaluators, attr: isaac_cube_inside_bin }
+}
+
+Scenario Exec (ns=isaac_exec) isaac-preparation {
+    variant: <isaac-pick-place-story.nominal-pick-place>
+    scene inst: <pick_place_scene_isaac>
+    bhv: <preparation-server>
+    policies: { <object-at-pick-policy>, <object-held-policy>, <object-at-place-policy> }
+}

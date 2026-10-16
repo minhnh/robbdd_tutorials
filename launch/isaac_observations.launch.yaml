@@ -1,0 +1,19 @@
+launch:
+  - arg:
+      name: config
+      default: "$(find-pkg-share robbdd_tutorials)/config/isaac_observations.yaml"
+  - arg:
+      name: graph_models
+      default: "$(find-pkg-share robbdd_tutorials)/models/pick_place/isaacsim/graph-models.yaml"
+  - include:
+      file: "$(find-pkg-share robbdd_tutorials)/launch/isaac_prepare.launch.yaml"
+  - node:
+      pkg: bdd_exec_ros2
+      exec: bdd_coordination_node
+      namespace: bdd
+      name: isaac_coordinator
+      output: screen
+      param:
+        - from: "$(var config)"
+        - name: graph_models
+          value: "$(var graph_models)"

@@ -4,6 +4,7 @@
 #include <bdd_bt_executor_ros2/nodes/build_planning_scene.hpp>
 #include <bdd_bt_executor_ros2/nodes/planning_scene_objects.hpp>
 #include <bdd_bt_executor_ros2/nodes/mock_timed_action.hpp>
+#include <bdd_bt_executor_ros2/nodes/wait_for_moveit_ready.hpp>
 #include <bdd_bt_executor_ros2/nodes/pose_operations.hpp>
 #include <bdd_bt_executor_ros2/nodes/resolve_behaviour_parameters.hpp>
 #include <behaviortree_cpp/bt_factory.h>
@@ -11,10 +12,9 @@
 #include <thread>
 
 using namespace bdd_bt_executor_ros2;
-using Pose      = geometry_msgs::msg::PoseStamped;
 using Behaviour = bdd_ros2_interfaces::action::Behaviour;
 
-TEST(IsaacTutorial, ShippedTreeResolvesOffsetsAndRestoresSelectedObject)
+TEST(IsaacTutorial, ShippedTreeRemovesAndRestoresSelectedObject)
 {
     rclcpp::init(0, nullptr);
     {
@@ -70,6 +70,12 @@ TEST(IsaacTutorial, ShippedTreeResolvesOffsetsAndRestoresSelectedObject)
               return std::make_unique<MockTimedAction>(name, test_config, node);
           }
         );
+        // Generic readiness checks are covered in the executor tests.
+        factory.registerSimpleAction(
+          "WaitForMoveItReady",
+          [](BT::TreeNode &) { return BT::NodeStatus::SUCCESS; },
+          WaitForMoveItReady::providedPorts()
+        );
         factory.registerBehaviorTreeFromFile(TUTORIAL_TREE);
         auto bb = BT::Blackboard::create();
         for (const auto &[key, value] : std::map<std::string, std::string>{
@@ -81,16 +87,14 @@ TEST(IsaacTutorial, ShippedTreeResolvesOffsetsAndRestoresSelectedObject)
                { "planning_scene_service", "/test_isaac_bt/apply_planning_scene" },
                { "planning_scene_query", "/test_isaac_bt/get_planning_scene" },
                { "expected_robot_uri",
-                 "https://secorolab.github.io/models/agents/isaac-sim/panda" } })
+                 "https://secorolab.github.io/models/agents/pick-place-single/panda" } })
             bb->set(key, value);
         auto                           goal = std::make_shared<Behaviour::Goal>();
         const std::vector<std::string> values{ catalogue.back().uri,
-                                               catalogue[1].uri,
                                                catalogue[2].uri,
                                                bb->get<std::string>("expected_robot_uri") };
         size_t                         i = 0;
-        for (auto role :
-             { "object_uri", "pick_workspace_uri", "place_workspace_uri", "robot_uri" }) {
+        for (auto role : { "object_uri", "place_workspace_uri", "robot_uri" }) {
             bdd_ros2_interfaces::msg::ParamValue binding;
             binding.variable_uri   = config["variable_bindings"][role].as<std::string>();
             binding.param_val_uris = { values[i++] };
@@ -113,9 +117,6 @@ TEST(IsaacTutorial, ShippedTreeResolvesOffsetsAndRestoresSelectedObject)
             return status;
         };
         ASSERT_EQ(run(), BT::NodeStatus::SUCCESS);
-        EXPECT_EQ(bb->get<std::string>("object_uri"), bottle.uri);
-        EXPECT_DOUBLE_EQ(bb->get<Pose>("object_world").pose.position.x, 1.25);
-        EXPECT_DOUBLE_EQ(bb->get<Pose>("grasp_pose").pose.position.x, 1.25);
         ASSERT_EQ(requests.size(), 4u);
         ASSERT_EQ(requests[2].world.collision_objects.size(), 1u);
         EXPECT_EQ(requests[2].world.collision_objects[0].id, bottle.object.id);

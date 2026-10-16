@@ -1,3 +1,4 @@
+import "pick_place_mujoco.scene"
 import "../common/pick_place_single.scene"
 import "scene_dsl:robots/kinova_gen3_7dof.ktree"
 import "scene_dsl:robots/robotiq_2f85.ktree"
@@ -120,7 +121,7 @@ ktree (ns=pps_mjc) world_tree {
 }
 
 scene inst (ns=pps_mjc) pick_place_scene_mjc {
-    scene: <pick_place_scene>
+    scene: <pick_place_mujoco_scene>
 
     kgraph (ns=pps_mjc) pick_place_graph {
         anchor: <world_tree.world_body.world>
@@ -207,7 +208,7 @@ scene inst (ns=pps_mjc) pick_place_scene_mjc {
         }
     }
 
-    agn <pickplace_agents.arm1> {
+    agn <mujoco_agents.kinova> {
         model kinova-mjc as mjcf {
             sys path = 'src/mj_kdl_wrapper/assets/kinova_gen3/gen3.xml'
             map tree <kinova> to "base_link"
@@ -222,7 +223,7 @@ scene inst (ns=pps_mjc) pick_place_scene_mjc {
         }
     }
 
-    agn <pickplace_agents.gripper1> {
+    agn <mujoco_agents.robotiq> {
         model gripper-mjc as mjcf {
             sys path = 'src/mj_kdl_wrapper/assets/robotiq_2f85/2f85.xml'
             map tree <gripper> to "base_mount"

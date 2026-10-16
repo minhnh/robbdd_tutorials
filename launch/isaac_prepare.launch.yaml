@@ -1,5 +1,29 @@
 launch:
   - arg:
+      name: readiness_timeout
+      default: "30.0"
+  - arg:
+      name: readiness_max_age
+      default: "1.0"
+  - arg:
+      name: move_group_action
+      default: /move_action
+  - arg:
+      name: joint_states_topic
+      default: /joint_states
+  - arg:
+      name: group
+      default: panda_arm
+  - arg:
+      name: srdf
+      default: "$(find-pkg-share moveit_resources_panda_moveit_config)/config/panda.srdf"
+  - arg:
+      name: urdf
+      default: "$(find-pkg-share moveit_resources_panda_description)/urdf/panda.urdf"
+  - arg:
+      name: end_effector_frame
+      default: panda_hand
+  - arg:
       name: config_file
       default: "$(find-pkg-share robbdd_tutorials)/config/isaac_pick_place.yaml"
   - arg:
@@ -32,6 +56,12 @@ launch:
         - name: tree_inputs
           type: str
           value: |
+            readiness_timeout: "$(var readiness_timeout)"
+            readiness_max_age: "$(var readiness_max_age)"
+            move_group_action: "$(var move_group_action)"
+            joint_states_topic: "$(var joint_states_topic)"
+            group: "$(var group)"
+            end_effector_frame: "$(var end_effector_frame)"
             config_file: "$(var config_file)"
             target_frame: "$(var target_frame)"
             world_frame: "$(var world_frame)"
@@ -39,7 +69,13 @@ launch:
             planning_scene_service: "$(var planning_scene_service)"
             planning_scene_query: "$(var planning_scene_query)"
             timeout: "$(var timeout)"
-            expected_robot_uri: "https://secorolab.github.io/models/agents/isaac-sim/panda"
+            expected_robot_uri: "https://secorolab.github.io/models/agents/pick-place-single/panda"
+        - name: robot_description
+          value: "$(file-content $(var urdf))"
+          type: str
+        - name: robot_description_semantic
+          value: "$(file-content $(var srdf))"
+          type: str
         - name: tree_xml
           value: "$(var tree_xml)"
         - name: bhv_server_name

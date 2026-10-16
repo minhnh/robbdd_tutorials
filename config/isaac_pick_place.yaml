@@ -60,6 +60,5 @@ entities:
         orientation: [0.7071067812, 0.0, 0.0, 0.7071067812]
 variable_bindings:
   object_uri: "https://secorolab.github.io/robbdd/tutorials/pick-place/var-target-object"
-  pick_workspace_uri: "https://secorolab.github.io/robbdd/tutorials/pick-place/var-pick-workspace"
   place_workspace_uri: "https://secorolab.github.io/robbdd/tutorials/pick-place/var-place-workspace"
   robot_uri: "https://secorolab.github.io/robbdd/tutorials/pick-place/var-robot"

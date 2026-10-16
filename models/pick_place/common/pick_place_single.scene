@@ -19,9 +19,13 @@ ws set (ns=pps_env) pickplace_workspaces {
     workspace bin-ws
 }
 
-agn set (ns=pps_agn) pickplace_agents {
-    agent arm1,
-    agent gripper1
+agn set (ns=pps_agn) mujoco_agents {
+    agent kinova,
+    agent robotiq
+}
+
+agn set (ns=pps_agn) panda_agents {
+    agent panda
 }
 
 comp (ns=pps_env) bin-composition of ws <pickplace_workspaces.bin-ws> {
@@ -36,5 +40,4 @@ comp (ns=pps_env) table-composition of ws <pickplace_workspaces.table-ws> {
 scene (ns=pps_scene) pick_place_scene {
     obj set <pickplace_objects>
     ws comp <table-composition>
-    agn set <pickplace_agents>
 }

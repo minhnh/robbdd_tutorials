@@ -31,6 +31,7 @@ contain the requirements and walks through the common models.
 1. [Test Execution](#test-execution)
     1. [With `motion-spec` in MuJoCo](#with-motion-spec-in-mujoco)
     1. [With MoveIt and `BehaviorTree.CPP` in Isaac Sim](#with-moveit-and-behaviortreecpp-in-isaac-sim)
+    1. [Isaac acceptance observations](#isaac-acceptance-observations)
 
 <!-- mtoc-end -->
 
@@ -178,31 +179,34 @@ The setup script:
 
 ### With `motion-spec` in MuJoCo
 
-1. Start test web visualization:
+Source the workspace environment in every terminal. If Isaac or another BDD
+runtime is running, also set the same unused `ROS_DOMAIN_ID` in every terminal
+(for example, `export ROS_DOMAIN_ID=138`).
+
+1. Start the MuJoCo behavior:
    ```sh
-   ros2 run bdd_exec_ros2 web_visualizer
+   motion-spec run "$(ros2 pkg prefix --share robbdd_tutorials)/models/pick_place/mujoco_motion_spec/pick_place_single.robmot" --rtf 1
    ```
-2. Start MuJoCo pick-place behaviour:
-   ```sh
-   # optional: skip GUI with --headless
-   motion-spec run "$(ros2 pkg prefix --share robbdd_tutorials)/models/pick_place/mujoco_motion_spec/pick_place_single.robmot"
-   ```
-3. Launch test coordinator:
+   Include `--headless` for skipping the GUI. `--rtf 1` keeps simulation paced to wall time,
+   matching the coordinator's clock. Wait for the `S_WAIT` state before triggering.
+2. Start the coordinator in another terminal:
    ```sh
    ros2 launch robbdd_tutorials pick_place_coordinator.launch.yaml
    ```
-4. Trigger test start:
+3. Starts the web visualizer in another terminal to monitor test results in the browser:
+   ```sh
+   ros2 run bdd_exec_ros2 web_visualizer
+   ```
+4. Start one test:
    ```sh
    ros2 topic pub --once /bdd/start std_msgs/msg/Empty '{}'
    ```
 
-Execution and validation:
+Expected results:
 
-- The motion-spec process owns the simulator and waits for a
-  `bdd_ros2_interfaces/action/Behaviour` goal.
-- The YAML launch starts the BDD coordinator.
-- The model provides the Behaviour action server, BDD boundary events, and direct
-  scene-pose observations used by the coordinator.
+- The arm grasps, transfers, releases, and retreats; the behavior finishes with `TRUE`.
+- The web visualizer should report `TRUE` for the scenario and each of
+  its three policies: at-pick, not-dropped, and at-place.
 
 ### With MoveIt and `BehaviorTree.CPP` in Isaac Sim
 
@@ -239,7 +243,7 @@ Offline checks, after sourcing the workspace:
 
 ```sh
 bdd_ws build
-colcon test --packages-select robbdd_tutorials --ctest-args -R test_isaac_bt --return-code-on-test-failure
+colcon test --packages-select robbdd_tutorials --ctest-args -R "test_isaac_(bt|observations)" --return-code-on-test-failure
 python3 src/robbdd_tutorials/scripts/test_setup.py
 ```
 
@@ -284,6 +288,13 @@ To validate against live Isaac Sim, source the workspace in every terminal:
 
 Validation limits and calibration:
 
+- Loading or resetting the scene can move `/clock` backward and stall the
+  ros2_control loop until simulation time catches up. Controllers may still report
+  active while arm joint states and TF stop updating; see
+  [ros2_control issue #3697](https://github.com/ros-controls/ros2_control/issues/3697)
+  for the Isaac/Gazebo reproduction. Workaround: load the scene first, then restart
+  MoveIt before running preparation. A fixed delay is unreliable because the wait
+  depends on the simulation time before reset.
 - The default tree makes no arm/gripper requests and leaves Isaac objects in place.
   If interrupted after removal, submit the goal again to rebuild the collision scene.
   Restoration uses the poses captured at the start.
@@ -303,3 +314,61 @@ Validation limits and calibration:
   Pose targets use MoveIt's current collision scene. They do not require an SRDF
   on the executor; named targets do. Attachment/detachment update MoveIt's collision
   model, not the physical simulator grasp.
+
+### Isaac acceptance observations
+
+The observation launch runs the preparation tree and coordinator together. Stop
+an existing preparation server before starting it; keep Isaac Sim playing and
+MoveIt running as above.
+
+This launch loads/resets the scene on `/bdd/start`, then starts BDD observations
+and the preparation Behaviour. Its first steps resolve the goal and wait for
+MoveIt readiness. `WaitForMoveItReady` requires
+fresh Panda arm joint states, `world -> panda_hand` TF, and `/move_action`.
+
+```sh
+ros2 launch robbdd_tutorials isaac_observations.launch.yaml readiness_timeout:=30.0
+# In another sourced terminal: resets/loads the scene, waits, then prepares it.
+ros2 topic pub --once /bdd/start std_msgs/msg/Empty '{}'
+```
+
+- `readiness_timeout` defaults to 30 simulation seconds; `readiness_max_age` to 1.
+  Action/topic, arm `group`, and frames are launch arguments (`--show-args`).
+  Joints come from the `urdf` and `srdf` files; `srdf` defaults to the same file
+  as the executor named-target example.
+- Behaviour feedback reports the missing readiness requirement. A timeout fails
+  the tree and aborts the Behaviour goal with `FALSE`, skipping scene preparation.
+  The BDD scenario timing includes this wait. Pausing simulation pauses the timeout.
+- Due to [ros2_control #3697](https://github.com/ros-controls/ros2_control/issues/3697),
+  a reset can stall arm publication until the old simulation-time deadline.
+  Readiness detects recovery; it does not accelerate it. For a single variation,
+  restart Isaac and MoveIt and trigger soon after startup so the pre-reset clock
+  is small enough for the configured wait. Restart before another test if needed.
+- The application owning MoveIt can instead restart it after scene setup. The
+  readiness node never starts or kills processes. For manual validation without
+  another time reset, use the scene-loading and preparation flow above.
+
+- `models/pick_place/isaacsim/pick_place.bdd` binds the common pick/place contract
+  to one Panda agent and the cube/table/bin roles. The shared scene contains no
+  invariant agents. `mujoco_agents` declares Kinova and Robotiq, while
+  `panda_agents` declares Panda. The robot binding selects Kinova or Panda;
+  sorting excludes the separately controlled Robotiq gripper.
+- `pick_place.bddx` and `graph-models.yaml` configure the acceptance observations.
+  `config/isaac_observations.yaml` selects only the Isaac user story.
+- Cube and bin observations preserve full simulation poses. Panda grasp position
+  comes from `world -> panda_hand` TF. The pick workspace uses the fixed `world`
+  origin at the tabletop, rather than the table's legs-origin pose.
+- The cube starts upright at `(0.1, -0.1, 0.1)` m. Other sampled objects can still
+  overlap and need inspection before physical motion.
+- The Isaac containment evaluator uses bin half-extents `(0.178, 0.277)` m and
+  a 0.025 m inset for the upright cube. MuJoCo calibration is unchanged.
+- Service timeouts, observation polling, and TF freshness follow the node clock.
+  With simulation time enabled, pausing simulation also pauses service timeouts. Zero source stamps
+  use receipt time for evaluation; they do not prove source freshness.
+- This diagnostic sends no physical motion or pick/place boundary events.
+  Overall BDD acceptance remains incomplete until the physical sequence is wired.
+  Grasp/lift/release calibration and live attachment/detachment remain to validate.
+
+The observation smoke test loads the shipped models and checks the Panda binding.
+Live provider validation also checked
+full cube/bin poses, Panda-hand TF, and a timestamp-aligned pre-pick condition.

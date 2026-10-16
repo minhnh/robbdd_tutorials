@@ -1,4 +1,3 @@
-import "pick_place_single.scene"
 import "../common/pick_place_single.scene"
 
 ns pps_isaac = "https://secorolab.github.io/models/scenes/pick-place-single-isaac/"
@@ -18,7 +17,7 @@ distrib (ns=pps_isaac) object-position {
 distrib (ns=pps_isaac) object-orientation { uniform-rotation }
 
 scene inst (ns=pps_isaac) pick_place_scene_isaac {
-    scene: <pick_place_panda_scene>
+    scene: <pick_place_scene>
     kgraph (ns=pps_isaac) pickplace_graph {
         anchor: <world.root>
         body world { frame root { } }
@@ -53,7 +52,7 @@ scene inst (ns=pps_isaac) pick_place_scene_isaac {
         }
         body cube {
             frame center {
-                pose on_table { wrt: <table.surface> xyz: sample <object-position> m orientation: quat { sample <object-orientation> } }
+                pose on_table { wrt: <table.surface> xyz: (0.1, -0.1, 0.1) m orientation: euler { angles: (0.0, 0.0, 0.0) } }
             }
         }
     }

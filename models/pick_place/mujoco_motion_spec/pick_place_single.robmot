@@ -92,7 +92,7 @@ ros (ns=app) {
             <pickplace_objects.cube>: <shared.world.pose-cube-base>,
             <pickplace_workspaces.table-ws>: <shared.world.pose-table-base>,
             <pickplace_workspaces.bin-ws>: <shared.world.pose-bin-base>,
-            <pickplace_agents.arm1>: <shared.world.pose-ee-base>,
+            <mujoco_agents.kinova>: <shared.world.pose-ee-base>,
         },
     }
 }
@@ -433,7 +433,7 @@ constraint-handler (ns=app) handler-home {
 
     solvers {
         arm-solver: serial-chain {
-            agent:     <pickplace_agents.arm1>,
+            agent:     <mujoco_agents.kinova>,
             algorithm: achd,
             gravity:   (0.0, 0.0, 9.81) m/s^2
         }
@@ -455,7 +455,7 @@ constraint-handler (ns=app) handler-hold-wait {
     solvers {
         <handler-home.arm-solver>,
         gripper-command-solver: command-forwarding {
-            agent: <pickplace_agents.gripper1>
+            agent: <mujoco_agents.robotiq>
         }
     }
 }
@@ -541,7 +541,7 @@ constraint-handler (ns=app) handler-close-grip {
     solvers {
         <handler-home.arm-solver>,
         gripper-command-solver: command-forwarding {
-            agent: <pickplace_agents.gripper1>
+            agent: <mujoco_agents.robotiq>
         }
     }
 }

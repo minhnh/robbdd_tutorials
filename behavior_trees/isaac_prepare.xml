@@ -3,6 +3,10 @@
     <Sequence>
       <ResolveBehaviourParameters config_file="{config_file}" uri_bindings="{uri_bindings}"/>
       <ScriptCondition code="robot_uri == expected_robot_uri"/>
+      <WaitForMoveItReady action_name="{move_group_action}"
+                         joint_states_topic="{joint_states_topic}" group="{group}"
+                         target_frame="{target_frame}" end_effector_frame="{end_effector_frame}"
+                         max_age="{readiness_max_age}" timeout="{readiness_timeout}"/>
       <ClearPlanningSceneForUris config_file="{config_file}" service_name="{planning_scene_query}" timeout="{timeout}" scene="{clear_scene}"/>
       <ApplyPlanningScene scene="{clear_scene}" service_name="{planning_scene_service}" timeout="{timeout}"/>
       <GetEntityPoses config_file="{config_file}" target_frame="{target_frame}"
@@ -10,7 +14,6 @@
                        timeout="{timeout}" poses="{poses}"/>
       <BuildPlanningScene config_file="{config_file}" poses="{poses}" scene="{world_scene}"/>
       <SelectEntityPose poses="{poses}" object_uri="{object_uri}" pose="{object_world}"/>
-      <SelectEntityPose poses="{poses}" object_uri="{pick_workspace_uri}" pose="{pick_workspace_world}"/>
       <SelectEntityPose poses="{poses}" object_uri="{place_workspace_uri}" pose="{place_workspace_world}"/>
       <!-- Nominal cube grasp: absolute tool orientation, then a tool-local offset. -->
       <OffsetPose pose="{object_world}" orientation="1;0;0;0" position_offset="0;0;-0.1"

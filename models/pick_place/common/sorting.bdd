@@ -65,6 +65,6 @@ User Story (ns=tutorial) sorting-story {
                 set var <sorting-template.place-workspaces>: {
                     { <pickplace_workspaces.bin-ws> }
                 }
-                var <sorting-template.robot>: agn set <pickplace_agents>
+                var <sorting-template.robot>: { <mujoco_agents.kinova>, <panda_agents.panda> }
         }
 }

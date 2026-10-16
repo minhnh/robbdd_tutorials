@@ -19,6 +19,7 @@
   <exec_depend condition="$ROBBDD_TUTORIAL_CONTEXT == 'isaacsim-bt'">rviz2</exec_depend>
   <exec_depend condition="$ROBBDD_TUTORIAL_CONTEXT == 'isaacsim-bt'">xacro</exec_depend>
   <test_depend condition="$ROBBDD_TUTORIAL_CONTEXT == 'isaacsim-bt'">ament_cmake_gtest</test_depend>
+  <test_depend condition="$ROBBDD_TUTORIAL_CONTEXT == 'isaacsim-bt'">ament_cmake_pytest</test_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
 

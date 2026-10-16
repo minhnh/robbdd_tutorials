@@ -2,9 +2,7 @@
 parameters:
   - variable_uri: "https://secorolab.github.io/robbdd/tutorials/pick-place/var-target-object"
     param_val_uris: ["https://secorolab.github.io/models/environments/pick-place-single/cube"]
-  - variable_uri: "https://secorolab.github.io/robbdd/tutorials/pick-place/var-pick-workspace"
-    param_val_uris: ["https://secorolab.github.io/models/environments/pick-place-single/table-ws"]
   - variable_uri: "https://secorolab.github.io/robbdd/tutorials/pick-place/var-place-workspace"
     param_val_uris: ["https://secorolab.github.io/models/environments/pick-place-single/bin-ws"]
   - variable_uri: "https://secorolab.github.io/robbdd/tutorials/pick-place/var-robot"
-    param_val_uris: ["https://secorolab.github.io/models/agents/isaac-sim/panda"]
+    param_val_uris: ["https://secorolab.github.io/models/agents/pick-place-single/panda"]
