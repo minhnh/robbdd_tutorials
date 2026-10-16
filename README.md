@@ -6,6 +6,22 @@ for the specification walkthrough and the executor's
 [BT node reference](https://github.com/minhnh/bdd_bt_executor_ros2/blob/main/docs/bt_nodes.md)
 for reusable node APIs.
 
+## Contents
+
+<!-- mtoc-start -->
+
+1. [Setup](#setup)
+    1. [Dependencies and setup options](#dependencies-and-setup-options)
+1. [Launch files](#launch-files)
+1. [MuJoCo execution](#mujoco-execution)
+1. [Isaac setup and execution](#isaac-setup-and-execution)
+    1. [Behavior trees](#behavior-trees)
+    1. [Configuration](#configuration)
+    1. [Observation debugging](#observation-debugging)
+1. [Offline checks](#offline-checks)
+
+<!-- mtoc-end -->
+
 ## Setup
 
 Clone this package under a ROS workspace's `src` directory, then select one context:
@@ -128,6 +144,25 @@ ros2 action send_goal /bdd/prepare bdd_ros2_interfaces/action/Behaviour \
   "$(cat "$(ros2 pkg prefix --share robbdd_tutorials)/config/isaac_prepare_goal.yaml")" --feedback
 ```
 
+### Positive-case scene
+
+For a clearer cube pick/place setup, load the positive-case scene before starting
+MoveIt. The cube and other objects sample distinct position regions; the BT still
+uses poses queried from Isaac, rather than fixed targets.
+
+```sh
+ros2 run bdd_exec_ros2 sim_interface_test load-scene \
+  --scene-model "$(ros2 pkg prefix --share robbdd_tutorials)/models/pick_place/isaacsim/pick_place_positive.scenex"
+```
+
+- Cube XY: `[-0.05, 0.10] x [-0.18, -0.08]` m.
+- Other object XY: `[0.10, 0.25] x [0.18, 0.28]` m, away from the cube approach.
+- The original scene retains unrestricted shared-region sampling. These bounds
+  reduce clutter around the cube; they do not guarantee collision-free motion or
+  prevent other objects from overlapping each other and moving during settling.
+- Use this with the standalone BT launch. The observation launch still loads the
+  original scene from its BDDX configuration on `/bdd/start`.
+
 ### Behavior trees
 
 All three trees share preparation: resolve goal bindings, wait for fresh robot
@@ -151,6 +186,7 @@ collisions or unreachable targets; full BDD boundary-event wiring remains pendin
 | [config/isaac_arm_controller.yaml](config/isaac_arm_controller.yaml) | Joint goal tolerances (0.02 rad), stopped velocity (0.01 rad/s), and settling allowance (2 s). |
 | [config/isaac_observations.yaml](config/isaac_observations.yaml) | Isaac coordinator settings, action endpoint, and simulation timing. |
 | [models/pick_place/isaacsim/pick_place_single.scenex](models/pick_place/isaacsim/pick_place_single.scenex) | Assets and sampled object poses; cube/box start upright, can/bottle also sample orientation. |
+| [models/pick_place/isaacsim/pick_place_positive.scenex](models/pick_place/isaacsim/pick_place_positive.scenex) | Positive-case sampled scene with separate cube/obstacle regions. |
 | [models/pick_place/isaacsim/pick_place.bdd](models/pick_place/isaacsim/pick_place.bdd) | Isaac scenario and Panda/object/workspace bindings for the shared contract. |
 | [models/pick_place/isaacsim/pick_place.bddx](models/pick_place/isaacsim/pick_place.bddx) | Simulation-pose and Panda-hand TF observation providers and evaluators. |
 | [models/pick_place/isaacsim/graph-models.yaml](models/pick_place/isaacsim/graph-models.yaml) | Models loaded by the Isaac coordinator. |
