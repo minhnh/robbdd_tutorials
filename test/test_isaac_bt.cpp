@@ -8,9 +8,11 @@
 #include <bdd_bt_executor_ros2/nodes/wait_for_moveit_ready.hpp>
 #include <bdd_bt_executor_ros2/nodes/pose_operations.hpp>
 #include <bdd_bt_executor_ros2/nodes/resolve_behaviour_parameters.hpp>
+#include <bdd_bt_executor_ros2/nodes/publish_bdd_event.hpp>
 #include <behaviortree_cpp/bt_factory.h>
 #include <gtest/gtest.h>
 #include <thread>
+#include <algorithm>
 
 using namespace bdd_bt_executor_ros2;
 using Behaviour = bdd_ros2_interfaces::action::Behaviour;
@@ -77,6 +79,7 @@ TEST(IsaacTutorial, ShippedTreeRemovesAndRestoresSelectedObject)
           [](BT::TreeNode &) { return BT::NodeStatus::SUCCESS; },
           WaitForMoveItReady::providedPorts()
         );
+        std::string              fail_at;
         bool                     planned       = false;
         bool                     planning_only = true;
         std::vector<std::string> motion_steps;
@@ -90,7 +93,9 @@ TEST(IsaacTutorial, ShippedTreeRemovesAndRestoresSelectedObject)
                              .value()
                              .header.frame_id.empty());
               planned = true;
-              return BT::NodeStatus::SUCCESS;
+              return std::string(action.getRawPortValue("target_pose")) == fail_at
+                       ? BT::NodeStatus::FAILURE
+                       : BT::NodeStatus::SUCCESS;
           },
           MoveGroupAction::providedPorts()
         );
@@ -105,6 +110,14 @@ TEST(IsaacTutorial, ShippedTreeRemovesAndRestoresSelectedObject)
               return BT::NodeStatus::SUCCESS;
           },
           GripperCommandAction::providedPorts()
+        );
+        factory.registerSimpleAction(
+          "PublishBddEvent",
+          [&](BT::TreeNode &action) {
+              motion_steps.push_back(action.getInput<std::string>("iri").value());
+              return BT::NodeStatus::SUCCESS;
+          },
+          PublishBddEvent::providedPorts()
         );
         factory.registerBehaviorTreeFromFile(TUTORIAL_PLAN_TREE);
         auto bb = BT::Blackboard::create();
@@ -175,15 +188,33 @@ TEST(IsaacTutorial, ShippedTreeRemovesAndRestoresSelectedObject)
         ASSERT_EQ(run(), BT::NodeStatus::SUCCESS);
         EXPECT_EQ(
           motion_steps,
-          (std::vector<std::string>{ "open",
-                                     "{pre_pick_pose}",
-                                     "{pick_pose}",
-                                     "close",
-                                     "{post_pick_pose}",
-                                     "{pre_place_pose}",
-                                     "{place_pose}",
-                                     "open",
-                                     "{post_place_pose}" })
+          (std::vector<std::string>{
+            "https://secorolab.github.io/models/pick-place-single/fsm/E_PICK_START",
+            "open",
+            "{pre_pick_pose}",
+            "{pick_pose}",
+            "close",
+            "{post_pick_pose}",
+            "https://secorolab.github.io/models/pick-place-single/fsm/E_PICK_END",
+            "{pre_place_pose}",
+            "https://secorolab.github.io/models/pick-place-single/fsm/E_PLACE_START",
+            "{place_pose}",
+            "open",
+            "{post_place_pose}",
+            "https://secorolab.github.io/models/pick-place-single/fsm/E_PLACE_END" })
+        );
+        tree.haltTree();
+        fail_at = "{pre_place_pose}";
+        motion_steps.clear();
+        ASSERT_EQ(run(), BT::NodeStatus::FAILURE);
+        EXPECT_EQ(motion_steps.back(), "{pre_place_pose}");
+        EXPECT_EQ(
+          std::count_if(
+            motion_steps.begin(),
+            motion_steps.end(),
+            [](const auto &step) { return step.find("/E_PLACE_") != std::string::npos; }
+          ),
+          0
         );
     }
     rclcpp::shutdown();

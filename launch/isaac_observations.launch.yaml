@@ -5,6 +5,9 @@ launch:
   - arg:
       name: graph_models
       default: "$(find-pkg-share robbdd_tutorials)/models/pick_place/isaacsim/graph-models.yaml"
+  - arg:
+      name: tree_xml
+      default: "$(find-pkg-share robbdd_tutorials)/behavior_trees/isaac_pick_place.xml"
   - include:
       file: "$(find-pkg-share robbdd_tutorials)/launch/isaac_prepare.launch.yaml"
   - node:

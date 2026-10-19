@@ -8,6 +8,7 @@ from bdd_exec_ros2.conversions import get_bhv_param_messages
 from bdd_dsl.models.user_story import UserStoryLoader
 from bdd_dsl.models.variation import get_task_var_dicts
 from rdf_utils.resolver import install_resolver
+from rdf_utils.models.vocab import URI_EXEC_PRED_RUNS_SCENE
 from rdflib import Graph, URIRef
 from robbdd.rdf.bdd import create_bdd_model_graph
 from robbdd.rdf.bddx import create_bddx_model_graph
@@ -39,3 +40,10 @@ def test_isaac_models_load_with_panda_binding():
     config = Path(__file__).parents[1] / "config" / "isaac_pick_place.yaml"
     required = yaml.safe_load(config.read_text())["variable_bindings"]
     assert set(required.values()) <= {p.variable_uri for p in parameters}
+
+    execution = URIRef(
+        "https://secorolab.github.io/robbdd/tutorials/pick-place/isaac/execution/isaac-pick-place"
+    )
+    assert graph.value(execution, URI_EXEC_PRED_RUNS_SCENE) == URIRef(
+        "https://secorolab.github.io/models/scenes/pick-place-positive-isaac/pick_place_scene_isaac"
+    )

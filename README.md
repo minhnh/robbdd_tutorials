@@ -105,8 +105,9 @@ finish with `TRUE`. Keep `--rtf 1` to match the coordinator's wall clock.
 
 ## Isaac setup and execution
 
-Keep Isaac playing. Load the scene before starting MoveIt to avoid a backward
-clock reset underneath the controllers.
+Load the scene once before starting MoveIt: its robot/controller setup requires
+the Panda robot to exist in Isaac and publish joint states. Keep Isaac playing
+after loading; for standalone runs this also avoids resetting time underneath MoveIt.
 
 ```sh
 bdd_ws build
@@ -160,8 +161,8 @@ ros2 run bdd_exec_ros2 sim_interface_test load-scene \
 - The original scene retains unrestricted shared-region sampling. These bounds
   reduce clutter around the cube; they do not guarantee collision-free motion or
   prevent other objects from overlapping each other and moving during settling.
-- Use this with the standalone BT launch. The observation launch still loads the
-  original scene from its BDDX configuration on `/bdd/start`.
+- The observation launch also selects this positive-case scene through BDDX.
+  `/bdd/start` reloads it with fresh samples.
 
 ### Behavior trees
 
@@ -174,8 +175,9 @@ state, query Isaac poses, compute offset targets, and apply the collision scene.
 | [isaac_plan_approach.xml](behavior_trees/isaac_plan_approach.xml) | Plan to pre-pick with `plan_only=true`; no physical motion. Select with `tree_xml` as above. |
 | [isaac_pick_place.xml](behavior_trees/isaac_pick_place.xml) | Open -> pre-pick -> pick -> close/attach -> post-pick lift -> pre-place -> place -> open/detach -> post-place retreat. |
 
-A complete physical cube pick/place has succeeded. Sampled scenes can still cause
-collisions or unreachable targets; full BDD boundary-event wiring remains pending.
+A complete standalone physical cube pick/place has succeeded. The motion tree emits
+BDD pick/place boundary events; full coordinator acceptance remains to validate.
+Sampled scenes can still cause collisions or unreachable targets.
 
 ### Configuration
 
@@ -201,10 +203,13 @@ Main launch arguments:
 - Readiness: `readiness_timeout=30.0`, `readiness_max_age=1.0` simulation seconds.
 - Observations: `config`, `graph_models`, and arguments inherited from the BT launch.
 
-### Observation debugging
+### BDD acceptance
 
-This launch checks observation wiring with the preparation tree; it does not yet
-provide full physical pick/place acceptance. Stop the standalone BT server first.
+This launch runs the physical pick/place tree and evaluates at-pick, held-during-
+transfer, and at-place policies using the positive-case scene. Stop the standalone
+BT server first. Load the scene once and start MoveIt using the setup above;
+MoveIt cannot initialize against an empty Isaac world. `/bdd/start` then loads/resets
+the positive-case scene again and triggers physical motion after setup/readiness.
 
 ```sh
 ros2 launch robbdd_tutorials isaac_observations.launch.yaml readiness_timeout:=120.0
@@ -216,6 +221,10 @@ ros2 topic pub --once /bdd/start std_msgs/msg/Empty '{}'
   time catches up; see [ros2_control #3697](https://github.com/ros-controls/ros2_control/issues/3697).
   Readiness detects recovery but cannot accelerate it. For standalone debugging,
   load the scene first, then restart MoveIt without another reset.
+- Pre-pick observations collect during preparation/readiness until `E_PICK_START`.
+  `E_PICK_END` follows lift; `E_PLACE_START` precedes descent; `E_PLACE_END` follows
+  release/retreat. The coordinator keeps collecting the 2-second at-place window
+  after the Behaviour result. Expect Behaviour and all three policies to be `TRUE`.
 - Feedback identifies missing action servers, joint states, or TF. Readiness and
   simulation-observation timeouts pause when simulation time is paused.
 - Inspect geometry in RViz against Isaac. The current service labels world poses
