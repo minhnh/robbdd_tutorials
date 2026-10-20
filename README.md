@@ -92,7 +92,7 @@ motion-spec run "$(ros2 pkg prefix --share robbdd_tutorials)/models/pick_place/m
 # Terminal 2:
 ros2 launch robbdd_tutorials pick_place_coordinator.launch.yaml
 # Terminal 3: optional viewer at http://127.0.0.1:8080.
-ros2 run bdd_exec_ros2 web_visualizer
+ros2 run bdd_exec_ros2 web_visualizer --ros-args -p use_sim_time:=true
 # Terminal 4: subscribe before triggering.
 ros2 topic echo /bdd/status
 # Terminal 5: trigger one test.
@@ -100,7 +100,8 @@ ros2 topic pub --once /bdd/start std_msgs/msg/Empty '{}'
 ```
 
 Expect the Behaviour result and all three policies (at-pick, held, at-place) to
-finish with `TRUE`. Keep `--rtf 1` to match the coordinator's wall clock.
+finish with `TRUE`. The runtime publishes `/clock`; the coordinator, evidence timestamps, and viewer
+use simulation time. `--rtf 1` selects real-time playback, not the clock source.
 See the [MuJoCo integration guide](https://minhnh.github.io/bdd-dsl/at-tutorial-execution-mujoco.html)
 for the model and evidence wiring.
 
@@ -186,7 +187,8 @@ Use `ros2 launch robbdd_tutorials <launch-file> --show-args` for all launch argu
 
 | File | Contents |
 | --- | --- |
-| [config/pick_place.yaml](config/pick_place.yaml) | MuJoCo coordinator and wall-clock settings. |
+| [robot.toml](models/pick_place/mujoco_motion_spec/robot.toml) | MuJoCo deployment poses and `/clock` publication. |
+| [config/pick_place.yaml](config/pick_place.yaml) | MuJoCo coordinator and simulation-clock settings. |
 | [config/isaac_pick_place.yaml](config/isaac_pick_place.yaml) | BT entity URI -> prim path mappings, collision shapes/offsets, and Behaviour variable bindings. |
 | [config/isaac_prepare_goal.yaml](config/isaac_prepare_goal.yaml) | Standalone goal with object, destination, and robot parameters. |
 | [config/isaac_arm_controller.yaml](config/isaac_arm_controller.yaml) | Joint tolerances and settling allowance. |
