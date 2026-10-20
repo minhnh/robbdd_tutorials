@@ -1,0 +1,27 @@
+<root BTCPP_format="4" main_tree_to_execute="PickPlace">
+  <include path="isaac_prepare.xml"/>
+  <BehaviorTree ID="PickPlace">
+    <Sequence>
+      <SubTree ID="Prepare" _autoremap="true"/>
+      <PublishBddEvent iri="https://secorolab.github.io/models/pick-place-single/fsm/E_PICK_START"/>
+      <GripperCommandAction action_name="{gripper_action}" position="0.04" timeout="10"/>
+      <MoveGroupAction group="{group}" target_pose="{pre_pick_pose}" link_name="{end_effector_frame}" action_name="{move_group_action}" timeout="60"/>
+      <MoveGroupAction group="{group}" target_pose="{pick_pose}" link_name="{end_effector_frame}" action_name="{move_group_action}" timeout="60"/>
+      <GripperCommandAction action_name="{gripper_action}" position="0.0" timeout="10"/>
+      <AttachObjectByUri config_file="{config_file}" object_uri="{object_uri}" link_name="{end_effector_frame}" touch_links="{touch_links}" scene="{attachment}"/>
+      <ApplyPlanningScene scene="{attachment}" service_name="{planning_scene_service}" timeout="{timeout}"/>
+      <MoveGroupAction group="{group}" target_pose="{post_pick_pose}" link_name="{end_effector_frame}" action_name="{move_group_action}" timeout="60"/>
+      <PublishBddEvent iri="https://secorolab.github.io/models/pick-place-single/fsm/E_PICK_END"/>
+      <MoveGroupAction group="{group}" target_pose="{pre_place_pose}" link_name="{end_effector_frame}" action_name="{move_group_action}" timeout="60"/>
+      <PublishBddEvent iri="https://secorolab.github.io/models/pick-place-single/fsm/E_PLACE_START"/>
+      <MoveGroupAction group="{group}" target_pose="{place_pose}" link_name="{end_effector_frame}" action_name="{move_group_action}" timeout="60"/>
+      <GripperCommandAction action_name="{gripper_action}" position="0.04" timeout="10"/>
+      <GetEntityPoses config_file="{config_file}" target_frame="{target_frame}" world_frame="{world_frame}" override_frame_id="world" service_namespace="{simulation_namespace}" timeout="{timeout}" poses="{released_poses}"/>
+      <SelectEntityPose poses="{released_poses}" object_uri="{object_uri}" pose="{released_object}"/>
+      <DetachObjectByUri config_file="{config_file}" object_uri="{object_uri}" link_name="{end_effector_frame}" object_pose="{released_object}" planning_frame="{target_frame}" scene="{detachment}"/>
+      <ApplyPlanningScene scene="{detachment}" service_name="{planning_scene_service}" timeout="{timeout}"/>
+      <MoveGroupAction group="{group}" target_pose="{post_place_pose}" link_name="{end_effector_frame}" action_name="{move_group_action}" timeout="60"/>
+      <PublishBddEvent iri="https://secorolab.github.io/models/pick-place-single/fsm/E_PLACE_END"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

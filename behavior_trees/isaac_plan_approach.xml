@@ -1,0 +1,11 @@
+<root BTCPP_format="4" main_tree_to_execute="PlanApproach">
+  <include path="isaac_prepare.xml"/>
+  <BehaviorTree ID="PlanApproach">
+    <Sequence>
+      <SubTree ID="Prepare" _autoremap="true"/>
+      <MoveGroupAction group="{group}" target_pose="{pre_pick_pose}"
+                       link_name="{end_effector_frame}" action_name="{move_group_action}"
+                       plan_only="true" timeout="60"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

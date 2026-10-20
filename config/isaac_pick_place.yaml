@@ -1,0 +1,64 @@
+# Provisional geometry and prim paths: calibrate against your scene before motion.
+entities:
+  - uri: "https://secorolab.github.io/models/environments/pick-place-single/cube"
+    id: "/spawned/cube"
+    collision_id: "robbdd_tutorial/cube"
+    shapes:
+      - type: box
+        dimensions: [0.05, 0.05, 0.05]
+  - uri: "https://secorolab.github.io/models/environments/pick-place-single/table-ws"
+    id: "/background/table_low_327/table_low"
+    collision_id: "robbdd_tutorial/table"
+    shapes:
+      - type: box
+        dimensions: [1.0, 1.0, 0.05]
+        # Entity origin is at the legs; tabletop top is 0.7696 m above it.
+        position: [0.0, 0.0, 0.7446]
+  - uri: "https://secorolab.github.io/models/environments/pick-place-single/bin-ws"
+    id: "/spawned/bin"
+    collision_id: "robbdd_tutorial/bin"
+    # Entity origin is the bin centre. Measured outer bounds: 0.198 x 0.297 x 0.1464 m.
+    # Walls/floor are approximations; offsets are relative to that centre.
+    shapes:
+      - type: box
+        dimensions: [0.198, 0.297, 0.01]
+        position: [0.0, 0.0, -0.0682]
+      - type: box
+        dimensions: [0.01, 0.297, 0.1364]
+        position: [-0.094, 0.0, 0.005]
+      - type: box
+        dimensions: [0.01, 0.297, 0.1364]
+        position: [0.094, 0.0, 0.005]
+      - type: box
+        dimensions: [0.178, 0.01, 0.1364]
+        position: [0.0, -0.1435, 0.005]
+      - type: box
+        dimensions: [0.178, 0.01, 0.1364]
+        position: [0.0, 0.1435, 0.005]
+  # Approximate collision envelopes; verify dimensions and local origins against USD.
+  - uri: "https://secorolab.github.io/models/environments/pick-place-single/can"
+    id: "/spawned/can"
+    collision_id: "robbdd_tutorial/can"
+    shapes:
+      - type: cylinder
+        dimensions: [0.102, 0.034]
+        orientation: [0.7071067812, 0.0, 0.0, 0.7071067812]
+  - uri: "https://secorolab.github.io/models/environments/pick-place-single/cereal-box"
+    id: "/spawned/cereal_box"
+    collision_id: "robbdd_tutorial/cereal-box"
+    shapes:
+      - type: box
+        dimensions: [0.16, 0.06, 0.21]
+        # USD geometry axes differ from the queried entity axes.
+        orientation: [0.7071067812, 0.0, 0.0, 0.7071067812]
+  - uri: "https://secorolab.github.io/models/environments/pick-place-single/bottle"
+    id: "/spawned/bottle"
+    collision_id: "robbdd_tutorial/bottle"
+    shapes:
+      - type: box
+        dimensions: [0.10, 0.065, 0.20]
+        orientation: [0.7071067812, 0.0, 0.0, 0.7071067812]
+variable_bindings:
+  object_uri: "https://secorolab.github.io/robbdd/tutorials/pick-place/var-target-object"
+  place_workspace_uri: "https://secorolab.github.io/robbdd/tutorials/pick-place/var-place-workspace"
+  robot_uri: "https://secorolab.github.io/robbdd/tutorials/pick-place/var-robot"

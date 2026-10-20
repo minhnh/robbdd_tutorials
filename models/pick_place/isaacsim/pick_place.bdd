@@ -1,0 +1,21 @@
+import "../common/pick_place.bdd"
+import "../common/pick_place_single.scene"
+
+ns isaac_test = "https://secorolab.github.io/robbdd/tutorials/pick-place/isaac/"
+
+User Story (ns=isaac_test) isaac-pick-place-story {
+    As A "Robot behavior developer"
+    I Want "To execute an Isaac Panda pick-and-place behavior"
+    So That "I can verify its observable outcome"
+
+    Scenarios:
+        Scenario nominal-pick-place {
+            template: <pick-place-template>
+            scene: <pick_place_scene>
+
+            variation:
+            | <pick-place-template.target-object> | <pick-place-template.pick-workspace> | <pick-place-template.place-workspace> | <pick-place-template.robot> |
+            |---|
+            | <pickplace_objects.cube> | <pickplace_workspaces.table-ws> | <pickplace_workspaces.bin-ws> | <panda_agents.panda> |
+        }
+}

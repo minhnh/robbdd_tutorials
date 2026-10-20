@@ -1,0 +1,9 @@
+import "../common/pick_place_single.scene"
+
+ns pps_mjc_scene = "https://secorolab.github.io/models/scenes/pick-place-single-mjc/"
+
+scene (ns=pps_mjc_scene) pick_place_mujoco_scene {
+    obj set <pickplace_objects>
+    ws comp <table-composition>
+    agn set <mujoco_agents>
+}

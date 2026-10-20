@@ -15,3 +15,12 @@ cube_inside_bin = PlanarContainmentEvaluator(
     boundary_size_xy=(0.23, 0.19),
     margin_m=0.02,
 )
+
+
+# KLT interior from the collision catalogue; preserve the separate MuJoCo calibration.
+isaac_cube_inside_bin = PlanarContainmentEvaluator(
+    URIRef(f"{_ENV}cube"),
+    URIRef(f"{_ENV}bin-ws"),
+    boundary_size_xy=(0.178, 0.277),
+    margin_m=0.025,
+)

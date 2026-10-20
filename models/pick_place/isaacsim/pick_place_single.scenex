@@ -1,0 +1,95 @@
+import "../common/pick_place_single.scene"
+
+ns pps_isaac = "https://secorolab.github.io/models/scenes/pick-place-single-isaac/"
+
+// Asset counterparts: Dex cube, soup can, cracker box, and mustard bottle.
+// MuJoCo uses robosuite cereal geometry; the shared cereal-box identity is retained.
+
+// Keep sampled centres away from the bin at x = -0.4 m.
+// shortcut: independent samples can overlap; add rejection for collision-free starts.
+distrib (ns=pps_isaac) object-position {
+    uniform {
+        dimension: 3
+        lower: (-0.1, -0.1, 0.1)
+        upper: (0.2, 0.2, 0.2)
+    }
+}
+distrib (ns=pps_isaac) object-orientation { uniform-rotation }
+
+scene inst (ns=pps_isaac) pick_place_scene_isaac {
+    scene: <pick_place_scene>
+    kgraph (ns=pps_isaac) pickplace_graph {
+        anchor: <world.root>
+        body world { frame root { } }
+        body table {
+            frame legs {
+                pose in_world { wrt: <world.root> xyz: (0.0, 0.0, -0.7696) m orientation: euler { angles: (0.0, 0.0, 0.0) } }
+            }
+            frame surface {
+                pose surface_from_legs { xyz: (0.0, 0.0, 0.7696) m orientation: euler { angles: (0.0, 0.0, 0.0) } }
+            }
+            inertia { frame: <surface> }
+        }
+        body bin {
+            frame center {
+                pose on_table { wrt: <table.surface> xyz: (-0.4, 0.0, 0.1) m orientation: euler { angles: (0.0, 0.0, 0.0) } }
+            }
+        }
+        body cereal-box {
+            frame center {
+                pose on_table { wrt: <table.surface> xyz: sample <object-position> m orientation: euler { angles: (0.0, 0.0, 0.0) } }
+            }
+        }
+        body can {
+            frame center {
+                pose on_table { wrt: <table.surface> xyz: sample <object-position> m orientation: quat { sample <object-orientation> } }
+            }
+        }
+        body bottle {
+            frame center {
+                pose on_table { wrt: <table.surface> xyz: sample <object-position> m orientation: quat { sample <object-orientation> } }
+            }
+        }
+        body cube {
+            frame center {
+                pose on_table { wrt: <table.surface> xyz: sample <object-position> m orientation: euler { angles: (0.0, 0.0, 0.0) } }
+            }
+        }
+    }
+    model panda-world-usd as usd {
+        ros pkg = "bdd_exec_ros2", path = "models/panda_moveit.usd"
+        map body <pickplace_graph.world> to "world"
+        map body <pickplace_graph.table> to "/background/table_low_327"
+    }
+
+    obj <ws_objects.bin> {
+        model bin-usd as usd {
+            sys path = 'https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/Props/KLT_Bin/small_KLT.usd'
+            map body <pickplace_graph.bin> to "/spawned/bin"
+        }
+    }
+    obj <pickplace_objects.cereal-box> {
+        model cracker-box-usd as usd {
+            sys path = 'https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/Props/YCB/Axis_Aligned_Physics/003_cracker_box.usd'
+            map body <pickplace_graph.cereal-box> to "/spawned/cereal_box"
+        }
+    }
+    obj <pickplace_objects.can> {
+        model tomato-soup-can-usd as usd {
+            sys path = 'https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/Props/YCB/Axis_Aligned_Physics/005_tomato_soup_can.usd'
+            map body <pickplace_graph.can> to "/spawned/can"
+        }
+    }
+    obj <pickplace_objects.bottle> {
+        model mustard-bottle-usd as usd {
+            sys path = 'https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/Props/YCB/Axis_Aligned_Physics/006_mustard_bottle.usd'
+            map body <pickplace_graph.bottle> to "/spawned/bottle"
+        }
+    }
+    obj <pickplace_objects.cube> {
+        model dex-cube-usd as usd {
+            sys path = 'https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/Props/Blocks/DexCube/dex_cube_instanceable.usd'
+            map body <pickplace_graph.cube> to "/spawned/cube"
+        }
+    }
+}

@@ -1,3 +1,4 @@
+import "pick_place.bdd"
 import "../common/pick_place.bdd"
 import "pick_place_single.scenex"
 

@@ -1,0 +1,47 @@
+<root BTCPP_format="4" main_tree_to_execute="InspectResolvedObject">
+  <BehaviorTree ID="Prepare">
+    <Sequence>
+      <ResolveBehaviourParameters config_file="{config_file}" uri_bindings="{uri_bindings}"/>
+      <ScriptCondition code="robot_uri == expected_robot_uri"/>
+      <WaitForMoveItReady action_name="{move_group_action}"
+                         joint_states_topic="{joint_states_topic}" group="{group}"
+                         target_frame="{target_frame}" end_effector_frame="{end_effector_frame}"
+                         max_age="{readiness_max_age}" timeout="{readiness_timeout}"/>
+      <ClearPlanningSceneForUris config_file="{config_file}" service_name="{planning_scene_query}" timeout="{timeout}" scene="{clear_scene}"/>
+      <ApplyPlanningScene scene="{clear_scene}" service_name="{planning_scene_service}" timeout="{timeout}"/>
+      <GetEntityPoses config_file="{config_file}" target_frame="{target_frame}"
+                       world_frame="{world_frame}" override_frame_id="world" service_namespace="{simulation_namespace}"
+                       timeout="{timeout}" poses="{poses}"/>
+      <BuildPlanningScene config_file="{config_file}" poses="{poses}" scene="{world_scene}"/>
+      <SelectEntityPose poses="{poses}" object_uri="{object_uri}" pose="{object_world}"/>
+      <SelectEntityPose poses="{poses}" object_uri="{place_workspace_uri}" pose="{place_workspace_world}"/>
+      <!-- Nominal cube grasp: absolute tool orientation, then a tool-local offset. -->
+      <OffsetPose pose="{object_world}" orientation="1;0;0;0" position_offset="0;0;-0.1"
+                  target_pose="{pick_pose}"/>
+      <OffsetPose pose="{pick_pose}" position_offset="{pick_clearance}" offset_frame="reference"
+                  target_pose="{pre_pick_pose}"/>
+      <SetBlackboard value="{pre_pick_pose}" output_key="post_pick_pose"/>
+      <OffsetPose pose="{place_workspace_world}" position_offset="0;0;0.08"
+                  target_pose="{release_point}"/>
+      <OffsetPose pose="{release_point}" orientation="1;0;0;0" position_offset="0;0;-0.1"
+                  target_pose="{place_pose}"/>
+      <OffsetPose pose="{place_pose}" position_offset="{place_clearance}" offset_frame="reference"
+                  target_pose="{pre_place_pose}"/>
+      <SetBlackboard value="{pre_place_pose}" output_key="post_place_pose"/>
+      <ApplyPlanningScene scene="{world_scene}" service_name="{planning_scene_service}" timeout="{timeout}"/>
+    </Sequence>
+  </BehaviorTree>
+  <BehaviorTree ID="InspectResolvedObject">
+    <Sequence>
+      <SubTree ID="Prepare" _autoremap="true"/>
+      <ClearPlanningSceneForUris config_file="{config_file}" uris="{object_uri}"
+                                service_name="{planning_scene_query}"
+                                timeout="{timeout}" scene="{selected_cleanup}"/>
+      <ApplyPlanningScene scene="{selected_cleanup}" service_name="{planning_scene_service}"
+                          timeout="{timeout}"/>
+      <MockTimedAction duration="10" heartbeat_duration="1" message="{object_uri}"/>
+      <ApplyPlanningScene scene="{world_scene}" service_name="{planning_scene_service}"
+                          timeout="{timeout}"/>
+    </Sequence>
+  </BehaviorTree>
+</root>
