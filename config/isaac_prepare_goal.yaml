@@ -1,4 +1,4 @@
-# Nominal bindings for /bdd/prepare; this tree prepares the scene without arm motion.
+# Nominal bindings for /bdd/pick_place; shared by inspection, planning, and motion trees.
 parameters:
   - variable_uri: "https://secorolab.github.io/robbdd/tutorials/pick-place/var-target-object"
     param_val_uris: ["https://secorolab.github.io/models/environments/pick-place-single/cube"]

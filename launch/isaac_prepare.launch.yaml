@@ -95,6 +95,6 @@ launch:
         - name: tree_xml
           value: "$(var tree_xml)"
         - name: bhv_server_name
-          value: /bdd/prepare
+          value: /bdd/pick_place
         - name: use_sim_time
           value: true

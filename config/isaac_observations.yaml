@@ -2,7 +2,7 @@
   ros__parameters:
     user_story: "https://secorolab.github.io/robbdd/tutorials/pick-place/isaac/isaac-pick-place-story"
     event_topic: /bdd/events
-    bhv_server_name: /bdd/prepare
+    bhv_server_name: /bdd/pick_place
     start_test_topic: /bdd/start
     status_topic: /bdd/status
     status_timer_period: 0.5

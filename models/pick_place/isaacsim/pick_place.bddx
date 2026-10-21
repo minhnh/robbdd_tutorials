@@ -6,7 +6,7 @@ import "pick_place_positive.scenex"
 ns isaac_exec = "https://secorolab.github.io/robbdd/tutorials/pick-place/isaac/execution/"
 
 bhv impl (ns=isaac_exec) pick-place-server {
-    bhv action: "/bdd/prepare"
+    bhv action: "/bdd/pick_place"
 }
 
 obs provider (ns=isaac_exec) entity-state {

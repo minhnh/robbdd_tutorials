@@ -75,7 +75,7 @@ Each launch has a separate role; run only one Isaac BT server at a time.
 | --- | --- |
 | [pick_place_coordinator.launch.yaml](launch/pick_place_coordinator.launch.yaml) | MuJoCo BDD coordinator; the motion-spec runtime starts separately. |
 | [isaac_moveit.launch.xml](launch/isaac_moveit.launch.xml) | MoveIt, controllers, robot TF, gripper bridge, and optional RViz. |
-| [isaac_prepare.launch.yaml](launch/isaac_prepare.launch.yaml) | Standalone BT server at `/bdd/prepare`; select inspection, planning-only, or motion through `tree_xml`. |
+| [isaac_prepare.launch.yaml](launch/isaac_prepare.launch.yaml) | Standalone BT server at `/bdd/pick_place`; select inspection, planning-only, or motion through `tree_xml`. |
 | [isaac_observations.launch.yaml](launch/isaac_observations.launch.yaml) | Includes the BT server and Isaac BDD coordinator; `/bdd/start` loads/resets the scene and starts evaluation. |
 
 Use `ros2 launch robbdd_tutorials <launch-file> --show-args` for all arguments.
@@ -151,14 +151,14 @@ for agent bindings, sampled scenes, observation policies, and event timing.
 ### Standalone Isaac debugging
 
 Use the standalone server to inspect collision geometry or isolate motion failures
-without running BDD evaluation. Stop the observation launch first; both expose `/bdd/prepare`.
+without running BDD evaluation. Stop the observation launch first; both expose `/bdd/pick_place`.
 Load a scene and start MoveIt using the sequence above before starting this server.
 
 ```sh
 # Default: temporarily remove the selected collision object, then restore it.
 ros2 launch robbdd_tutorials isaac_prepare.launch.yaml
 # Another sourced terminal: trigger the selected tree.
-ros2 action send_goal /bdd/prepare bdd_ros2_interfaces/action/Behaviour \
+ros2 action send_goal /bdd/pick_place bdd_ros2_interfaces/action/Behaviour \
   "$(cat "$(ros2 pkg prefix --share robbdd_tutorials)/config/isaac_prepare_goal.yaml")" --feedback
 ```
 
