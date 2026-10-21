@@ -12,6 +12,8 @@ evt loop (ns=pp) pick_place_single_fsm_events {
     evt E_OPEN_READY,
     evt E_RETREAT_READY,
     evt E_RETREAT_SETTLED,
+    evt E_DONE_ENTERED,
+    evt E_RUN_ENDED,
     evt E_GRASP_LOST_LIFT,
     evt E_GRASP_LOST_PLACE_ABOVE,
     evt E_GRASP_LOST_PLACE,
@@ -114,7 +116,11 @@ fsm (ns=pp) pick_place_single_fsm {
             do: <T_OPEN_RETREAT>,
             fires { <pick_place_single_fsm_events.E_PLACE_END> }
         },
-        R_RETREAT_SETTLED { when: <pick_place_single_fsm_events.E_RETREAT_SETTLED>, do: <T_RETREAT_DONE> },
+        R_RETREAT_SETTLED {
+            when: <pick_place_single_fsm_events.E_RETREAT_SETTLED>,
+            do: <T_RETREAT_DONE>,
+            fires { <pick_place_single_fsm_events.E_DONE_ENTERED> }
+        },
         R_LIFT_GRASP_LOST {
             when: <pick_place_single_fsm_events.E_GRASP_LOST_LIFT>,
             do:   <T_LIFT_RECOVER>,
