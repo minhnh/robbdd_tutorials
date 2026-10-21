@@ -731,3 +731,56 @@ constraint-handler (ns=app) handler-recover {
         <handler-home.arm-solver>
     }
 }
+
+// Keep physics, observations, and /clock alive long enough for final BDD evaluation.
+// This follows the collab_icra end-state hold; it outlasts the 2-second place horizon.
+guarded-motion (ns=app) hold-done {
+    description: "Hold the final pose while the coordinator finishes evaluation"
+
+    context {
+        spec {
+            pose target-pose = snapshot of <shared.world.pose-ee-base> on event <pp.E_DONE_ENTERED>,
+            duration linger = 3.0 s
+        }
+    }
+
+    when {}
+
+    while {
+        hold-x: keeping <shared.world.pose-ee-base>.position.x equal to <spec.target-pose>.position.x,
+        hold-y: keeping <shared.world.pose-ee-base>.position.y equal to <spec.target-pose>.position.y,
+        hold-z: keeping <shared.world.pose-ee-base>.position.z equal to <spec.target-pose>.position.z,
+        hold-orientation: keeping <shared.world.pose-ee-base>.orientation equal to <spec.target-pose>.orientation,
+        hold-elbow: keeping <shared.world.elbow-angle> equal to <shared.spec.elbow-angle-target>,
+        open-gripper: keeping <shared.world.gripper-pos> equal to <shared.spec.gripper-open>
+    }
+
+    until all {
+        held: elapsed greater than <spec.linger>
+    }
+}
+
+constraint-handler (ns=app) handler-hold-done {
+    handles: <hold-done>
+    runs-in: <pp.S_DONE>
+    monitors {
+        mon-held: monitor <hold-done.until> {
+            satisfied { trigger: event <pp.E_RUN_ENDED> }
+        }
+    }
+    controllers {
+        pid ctrl-done-x { constraint: <hold-done.hold-x>, Kp: 140, Ki: 20, Kd: 55, decay: 0 },
+        pid ctrl-done-y { constraint: <hold-done.hold-y>, Kp: 140, Ki: 20, Kd: 55, decay: 0 },
+        pid ctrl-done-z { constraint: <hold-done.hold-z>, Kp: 60, Ki: 20, Kd: 55, decay: 0 },
+        pid ctrl-done-ori { constraint: <hold-done.hold-orientation>, Kp: 180, Ki: 30, Kd: 120, decay: 0 },
+        pid ctrl-done-elbow {
+            constraint: <hold-done.hold-elbow>, output-saturation: saturation { max: <shared.spec.elbow-torque-limit> },
+            Kp: 70, Ki: 0, Kd: 15, decay: 0, error-normalization: (-pi, pi) rad
+        } as torque,
+        feed-forward ctrl-done-gripper { constraint: <hold-done.open-gripper> }
+    }
+    solvers {
+        <handler-home.arm-solver>,
+        <handler-close-grip.gripper-command-solver>
+    }
+}
