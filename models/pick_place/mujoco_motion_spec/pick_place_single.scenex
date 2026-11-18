@@ -8,7 +8,7 @@ ns pps_mjc = "https://secorolab.github.io/models/scenes/pick-place-single-mjc/"
 // Each object draws its position independently above the table.
 // Gravity settles the objects on the table; initial overlaps are not rejected.
 distrib (ns=pps_mjc) object-position {
-    uniform { dimension: 3 lower: (-0.20, -0.25, 0.15) upper: (0.25, 0.0, 0.20) }
+    uniform { dimension: 3 lower: (-0.20, -0.25, 0.15) upper: (0.25, 0.2, 0.20) }
 }
 
 ktree inst (ns=pps_mjc) kinova of <kinova_tree>
