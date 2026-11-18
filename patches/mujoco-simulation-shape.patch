@@ -1,0 +1,10 @@
+--- a/secoro/metamodels/acceptance-criteria/bdd/execution-context.shacl.ttl
++++ b/secoro/metamodels/acceptance-criteria/bdd/execution-context.shacl.ttl
+@@ -65,6 +65,7 @@
+ # A simulator's name is required — the parser dispatches the backend off it.
+ exec:SimulationShape
+   a sh:NodeShape ;
++  sh:deactivated true ;
+   sh:targetClass exec:Simulation ;
+   sh:property [
+     sh:path ssn:deployedOnPlatform ;

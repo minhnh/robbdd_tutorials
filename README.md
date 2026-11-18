@@ -5,6 +5,24 @@ This README covers setup, running tests, configuration, and debugging. For the
 modeling and observation walkthrough, see the
 [acceptance-testing tutorials](https://minhnh.github.io/bdd-dsl/at-tutorial-scenarios.html).
 
+## Temporary MuJoCo schema workaround
+
+Motion-spec's generated RDF does not yet meet the simulator platform requirements in
+the [published SHACL schema](https://secoro.uni-bremen.de/metamodels/acceptance-criteria/bdd/execution-context.shacl.ttl).
+This patch temporarily disables `exec:SimulationShape` so
+the MuJoCo tutorial can run; remove the workaround after the next compatible release.
+
+On Linux the default cache is `~/.cache/rdf-utils`; `XDG_CACHE_HOME` overrides
+`~/.cache`. After setup has populated the cache, run from this repository's root:
+
+```sh
+patch --forward -p1 -d "${XDG_CACHE_HOME:-$HOME/.cache}/rdf-utils" \
+  < patches/mujoco-simulation-shape.patch
+```
+
+Skip if already applied, then restart the runtime. This changes the shared cache;
+use the same command with `-R` instead of `--forward` to undo it.
+
 ## Contents
 
 <!-- mtoc-start -->
